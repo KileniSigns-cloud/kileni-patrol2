@@ -1,0 +1,30 @@
+export const C = {
+  yellow:  '#FCCA3B',
+  muted:   '#8F8F8F',
+  bg:      '#0A0A0A',
+  card:    '#141414',
+  border:  '#2A2A2A',
+  red:     '#FF3B30',
+} as const;
+
+export const cls = {
+  page:       'min-h-screen bg-gray-950 flex flex-col',
+  card:       'bg-gray-900 border border-gray-800 rounded-2xl p-4 shadow-lg',
+  cardTitle:  'text-xs text-gray-400 uppercase tracking-wider font-semibold',
+  label:      'text-xs text-gray-500 uppercase tracking-wider mb-2 block',
+  input:      'w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500 transition-colors',
+  textarea:   'w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500 transition-colors resize-none',
+  btnPrimary: 'w-full py-4 bg-yellow-500 hover:bg-yellow-400 disabled:bg-gray-700 disabled:text-gray-500 text-black font-black text-lg rounded-2xl transition-colors active:scale-[0.98]',
+  btnGhost:   'border border-gray-600 text-white font-semibold rounded-xl hover:bg-gray-800 transition-colors',
+  btnPill:    'border border-yellow-500 text-yellow-500 rounded-full px-4 py-1 text-xs font-semibold hover:bg-yellow-500 hover:text-black transition-colors',
+  accent:     'text-yellow-500 text-xs font-mono uppercase tracking-widest',
+  stepHeader: 'text-xs font-semibold uppercase tracking-widest text-[#FCCA3B]',
+  pageTitle:  'text-2xl font-black text-white leading-tight',
+  muted:      'text-gray-400 text-sm',
+  pewter:     'text-gray-400',
+  toastError: 'fixed bottom-24 left-4 right-4 z-50 flex items-start gap-3 p-4 bg-red-950 border border-red-700 rounded-2xl shadow-xl',
+  chip:       'px-3 py-1.5 rounded-full text-sm transition-colors',
+  chipActive: 'bg-yellow-500 text-black font-semibold',
+  chipIdle:   'bg-gray-800 border border-gray-700 text-gray-400 hover:border-gray-600',
+  bottomBar:  'fixed bottom-0 left-0 right-0 px-4 pb-8 pt-4 bg-gradient-to-t from-gray-950 via-gray-950 to-transparent',
+} as const;
