@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { compressImage } from '../lib/imageUtils';
 import { cls, C } from '../lib/ui';
 import { usePatrolSession } from '../context/PatrolSessionContext';
 import { usePatrolStore } from '../store/patrol.store';
@@ -67,16 +68,21 @@ const PhotoUploadPage: React.FC = () => {
     else setSurroundingFiles(prev => prev.filter((_, i) => i !== index));
   };
 
+  const fileToBase64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
   const uploadFile = async (file: File): Promise<string | null> => {
     if (!sessionId) return null;
     const path = `inspections/${sessionId}/${Date.now()}_${file.name}`;
     const { error: uploadError } = await supabase.storage
       .from('patrol-photos')
       .upload(path, file, { upsert: false });
-    if (uploadError) {
-      setError(`Upload failed: ${uploadError.message}`);
-      return null;
-    }
+    if (uploadError) return null;
     return supabase.storage.from('patrol-photos').getPublicUrl(path).data.publicUrl;
   };
 
@@ -87,28 +93,29 @@ const PhotoUploadPage: React.FC = () => {
     setUploadCount(0);
     setUploadTotal(totalFiles);
 
-    const signUrls: string[] = [];
+    // Compress files to base64 — guaranteed to work as CRM <img> src
+    const signBase64: string[] = [];
     for (const file of signFiles) {
-      const url = await uploadFile(file);
-      if (url) signUrls.push(url);
+      const raw = await fileToBase64(file);
+      signBase64.push(await compressImage(raw));
       setUploadCount(prev => prev + 1);
     }
 
-    const surroundingUrls: string[] = [];
+    const surroundingBase64: string[] = [];
     for (const file of surroundingFiles) {
-      const url = await uploadFile(file);
-      if (url) surroundingUrls.push(url);
+      const raw = await fileToBase64(file);
+      surroundingBase64.push(await compressImage(raw));
       setUploadCount(prev => prev + 1);
     }
 
     setUploading(false);
 
-    if (signUrls.length === 0) {
-      setError('No sign photos uploaded. Check your connection and try again.');
-      return;
+    // Upload to storage in background (non-fatal — only needed for inspection_photos secondary path)
+    for (const file of [...signFiles, ...surroundingFiles]) {
+      uploadFile(file).catch(() => {});
     }
 
-    setPhotoUrls(signUrls, surroundingUrls);
+    setPhotoUrls(signBase64, surroundingBase64);
     navigate(`/patrol-type/${sessionId}`);
   };
 

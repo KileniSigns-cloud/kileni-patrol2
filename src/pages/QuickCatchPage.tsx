@@ -4,6 +4,7 @@ import { usePatrolStore } from '../store/patrol.store';
 import { useGPS } from '../hooks/useGPS';
 import { useCamera } from '../hooks/useCamera';
 import { supabase } from '../lib/supabase';
+import { compressImage } from '../lib/imageUtils';
 import { cls } from '../lib/ui';
 import BottomNav from '../components/layout/BottomNav';
 import { MapPin, Camera, Upload, Zap } from 'lucide-react';
@@ -60,12 +61,18 @@ const QuickCatchPage: React.FC = () => {
   const handleSubmit = async () => {
     setError(null);
     if (!businessName.trim()) { setError('Business name is required.'); return; }
-    if (camera.files.length === 0) { setError('At least one photo is required.'); return; }
+    if (camera.photos.length === 0) { setError('At least one photo is required.'); return; }
     setSaving(true);
     try {
       const leadId = crypto.randomUUID();
 
-      // STEP A: Upload photos to storage
+      // STEP A: Compress photos client-side — base64 data URLs work directly in CRM <img> tags
+      const compressedPhotos: string[] = [];
+      for (const dataUrl of camera.photos) {
+        compressedPhotos.push(await compressImage(dataUrl));
+      }
+
+      // STEP B: Upload to storage in background (non-fatal, secondary path for inspection_photos)
       const uploadedUrls: string[] = [];
       for (const file of camera.files) {
         const ext = file.name.split('.').pop() || 'jpg';
@@ -81,7 +88,7 @@ const QuickCatchPage: React.FC = () => {
         }
       }
 
-      // STEP B: Create sign_inspection stub so CRM can find photos (non-fatal)
+      // STEP C: Create sign_inspection stub (non-fatal)
       let inspectionId: string | null = null;
       try {
         const { data: inspData } = await supabase
@@ -108,7 +115,7 @@ const QuickCatchPage: React.FC = () => {
         // non-fatal — lead still gets created
       }
 
-      // STEP C: Insert inspection_photos (non-fatal)
+      // STEP D: Insert inspection_photos with storage URLs (non-fatal)
       if (inspectionId && uploadedUrls.length > 0) {
         try {
           await supabase.from('inspection_photos').insert(
@@ -124,7 +131,7 @@ const QuickCatchPage: React.FC = () => {
         }
       }
 
-      // STEP D: Insert lead
+      // STEP E: Insert lead with compressed base64 photos (guaranteed CRM-accessible)
       const { error: dbErr } = await supabase.from('leads').insert({
         id: leadId,
         source: 'PATROL_QUICK_CATCH',
@@ -137,7 +144,7 @@ const QuickCatchPage: React.FC = () => {
         sign_type: signType || null,
         issue_type: issueType || null,
         notes: notes.trim() || null,
-        photos: uploadedUrls,
+        photos: compressedPhotos,
         status: 'new',
         organisation_id: '8239bb55-2423-43c1-bb54-6370765f2275',
         created_at: new Date().toISOString(),
