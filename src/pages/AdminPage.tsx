@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { usePatrolStore } from '../store/patrol.store';
 import { cls } from '../lib/ui';
@@ -55,6 +56,7 @@ function applyDateFilter<T extends { started_at?: string; created_at?: string }>
 }
 
 const AdminPage: React.FC = () => {
+  const navigate = useNavigate();
   const { currentUser } = usePatrolStore();
   const [activeTab, setActiveTab] = useState<TabType>('sessions');
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -156,7 +158,7 @@ const AdminPage: React.FC = () => {
     <div className="flex flex-col items-center justify-center py-24 px-8 text-center gap-4">
       <span className="text-5xl">{icon}</span>
       <p className="text-white font-black text-xl">No {message} found</p>
-      <p className={cls.muted}>
+      <p className="text-[#8F8F8F] text-sm">
         {message === 'sessions'
           ? 'Your patrol sessions will appear here.'
           : 'Quick Catch leads will appear here.'}
@@ -216,8 +218,19 @@ const AdminPage: React.FC = () => {
             <div className="px-5 flex flex-col gap-3">
               {filteredSessions.map(sess => {
                 const routeName = sess.patrol_routes?.name ?? 'Unknown Route';
+                const isActive = !sess.is_complete;
+                const CardEl = isActive ? 'button' : 'div';
                 return (
-                  <div key={sess.id} className={`${cls.card} p-4`}>
+                  <CardEl
+                    key={sess.id}
+                    {...(isActive ? { onClick: () => navigate(`/patrol/${sess.id}`) } : {})}
+                    className={[
+                      'w-full bg-[#1C1C1E] border rounded-2xl p-4 text-left transition-all',
+                      isActive
+                        ? 'border-[#FCCA3B]/40 hover:border-[#FCCA3B] active:scale-[0.98] cursor-pointer'
+                        : 'border-[#2A2A2A]',
+                    ].join(' ')}
+                  >
                     <div className="flex items-start justify-between gap-3 mb-3">
                       <p className="text-white font-black text-sm leading-snug flex-1 truncate">
                         {routeName}
@@ -234,12 +247,12 @@ const AdminPage: React.FC = () => {
                       )}
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className={cls.muted}>{fmtDateTime(sess.started_at)}</span>
-                      <span className={`${cls.muted} font-semibold`}>
-                        {fmtDuration(sess.started_at, sess.ended_at)}
+                      <span className="text-[#8F8F8F] text-sm">{fmtDateTime(sess.started_at)}</span>
+                      <span className="text-[#8F8F8F] text-sm font-semibold">
+                        {isActive ? 'Tap to resume →' : fmtDuration(sess.started_at, sess.ended_at)}
                       </span>
                     </div>
-                  </div>
+                  </CardEl>
                 );
               })}
             </div>
@@ -259,12 +272,12 @@ const AdminPage: React.FC = () => {
           {!loading && filteredCatches.length > 0 && (
             <div className="px-5 flex flex-col gap-3">
               {filteredCatches.map(c => (
-                <div key={c.id} className={`${cls.card} p-4`}>
+                <div key={c.id} className="bg-[#1C1C1E] border border-[#2A2A2A] rounded-2xl p-4">
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="min-w-0 flex-1">
                       <p className="text-white font-black text-sm truncate">{c.business_name || '—'}</p>
                       {c.sign_type && (
-                        <p className={`${cls.muted} mt-0.5`}>{c.sign_type}</p>
+                        <p className="text-[#8F8F8F] text-xs mt-0.5">{c.sign_type}</p>
                       )}
                     </div>
                     {c.issue_type && (
@@ -273,7 +286,7 @@ const AdminPage: React.FC = () => {
                       </span>
                     )}
                   </div>
-                  <span className={cls.muted}>{fmtDateTime(c.created_at)}</span>
+                  <span className="text-[#8F8F8F] text-sm">{fmtDateTime(c.created_at)}</span>
                 </div>
               ))}
             </div>
