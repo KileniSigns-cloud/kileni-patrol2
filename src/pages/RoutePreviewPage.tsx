@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { usePatrolStore } from '../store/patrol.store';
 import { usePatrolSession } from '../context/PatrolSessionContext';
@@ -9,25 +9,37 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 const RoutePreviewPage: React.FC = () => {
   const { routeId } = useParams<{ routeId: string }>();
   const navigate = useNavigate();
-  const { routes, currentUser, setActiveSession } = usePatrolStore();
+  const { currentUser, setActiveSession } = usePatrolStore();
   const { startSession } = usePatrolSession();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const route = (routes || []).find(r => r.id === routeId);
 
-  if (!route) return (
-    <div className="min-h-screen bg-[#0A0A0A] flex flex-col items-center justify-center gap-4">
-      <p className="text-[#8F8F8F]">Route not found.</p>
-      <button onClick={() => navigate('/routes')} className="text-[#FCCA3B] text-sm underline">
-        Back to Routes
-      </button>
-    </div>
-  );
+  const [route, setRoute] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [starting, setStarting] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!routeId) return;
+    setLoading(true);
+    supabase
+      .from('patrol_routes')
+      .select('*')
+      .eq('id', routeId)
+      .single()
+      .then(({ data, error: err }) => {
+        if (err || !data) {
+          setError('Route not found.');
+        } else {
+          setRoute(data);
+        }
+        setLoading(false);
+      });
+  }, [routeId]);
 
   const handleStartPatrol = async () => {
-    if (!currentUser) return;
-    setLoading(true);
-    setError(null);
+    if (!currentUser || !route) return;
+    setStarting(true);
+    setStartError(null);
     const { data, error: dbError } = await supabase
       .from('patrol_sessions')
       .insert({
@@ -41,14 +53,33 @@ const RoutePreviewPage: React.FC = () => {
       .single();
 
     if (dbError || !data) {
-      setError('Failed to start patrol. Please try again.');
-      setLoading(false);
+      setStartError('Failed to start patrol. Please try again.');
+      setStarting(false);
       return;
     }
     setActiveSession(data.id, route.id);
     startSession(data.id, route.id, route.name);
     navigate(`/patrol/${data.id}`);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
+        <div className="text-[#8F8F8F] text-sm animate-pulse">Loading route…</div>
+      </div>
+    );
+  }
+
+  if (error || !route) {
+    return (
+      <div className="min-h-screen bg-[#0A0A0A] flex flex-col items-center justify-center gap-4">
+        <p className="text-[#8F8F8F]">{error ?? 'Route not found.'}</p>
+        <button onClick={() => navigate('/routes')} className="text-[#FCCA3B] text-sm underline">
+          Back to Routes
+        </button>
+      </div>
+    );
+  }
 
   const badge = (route.code ?? route.name ?? '').slice(0, 2).toUpperCase();
 
@@ -106,18 +137,21 @@ const RoutePreviewPage: React.FC = () => {
         </div>
       )}
 
-      {error && (
-        <p className="text-red-500 text-sm mt-4 px-5">{error}</p>
+      {startError && (
+        <p className="text-red-500 text-sm mt-4 px-5">{startError}</p>
       )}
 
       {/* Start Patrol button */}
       <div className="fixed bottom-6 left-5 right-5">
         <button
           onClick={handleStartPatrol}
-          disabled={loading}
+          disabled={starting}
           className={cls.btnPrimary}
         >
-          {loading ? 'Starting…' : <span className="flex items-center justify-center gap-1.5">Start Patrol <ChevronRight className="w-5 h-5" /></span>}
+          {starting
+            ? 'Starting…'
+            : <span className="flex items-center justify-center gap-1.5">Start Patrol <ChevronRight className="w-5 h-5" /></span>
+          }
         </button>
       </div>
     </div>
