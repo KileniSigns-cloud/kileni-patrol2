@@ -42,6 +42,7 @@ const QuickCatchPage: React.FC = () => {
   const camera = useCamera();
 
   const [businessName, setBusinessName] = useState('');
+  const [address, setAddress] = useState('');
   const [signCategory, setSignCategory] = useState<SignCategory>('Illuminated');
   const [signType, setSignType] = useState('');
   const [issueType, setIssueType] = useState('');
@@ -66,6 +67,7 @@ const QuickCatchPage: React.FC = () => {
         id: crypto.randomUUID(),
         source: 'PATROL_QUICK_CATCH',
         business_name: businessName.trim(),
+        address: address.trim() || null,
         latitude,
         longitude,
         sign_category: signCategory,
@@ -86,6 +88,7 @@ const QuickCatchPage: React.FC = () => {
 
   const reset = () => {
     setBusinessName('');
+    setAddress('');
     setSignCategory('Illuminated');
     setSignType('');
     setIssueType('');
@@ -151,7 +154,20 @@ const QuickCatchPage: React.FC = () => {
             value={businessName}
             onChange={e => setBusinessName(e.target.value)}
             placeholder="Enter business name"
-            className={cls.input}
+            className="bg-[#1C1C1E] border border-[#2A2A2A] rounded-xl px-4 py-3 w-full text-white placeholder-[#8F8F8F] focus:border-[#FCCA3B] focus:outline-none text-sm"
+            autoCapitalize="words"
+          />
+        </div>
+
+        {/* Address */}
+        <div>
+          <label className={cls.label}>Address <span className="normal-case tracking-normal font-normal text-[#8F8F8F]">— optional</span></label>
+          <input
+            type="text"
+            value={address}
+            onChange={e => setAddress(e.target.value)}
+            placeholder="e.g. 123 Main St"
+            className="bg-[#1C1C1E] border border-[#2A2A2A] rounded-xl px-4 py-3 w-full text-white placeholder-[#8F8F8F] focus:border-[#FCCA3B] focus:outline-none text-sm"
             autoCapitalize="words"
           />
         </div>
@@ -289,7 +305,7 @@ const QuickCatchPage: React.FC = () => {
         <div>
           <label className={cls.label}>Notes (optional)</label>
           <textarea
-            className={cls.textarea}
+            className="bg-[#1C1C1E] border border-[#2A2A2A] rounded-xl px-4 py-3 w-full text-white placeholder-[#8F8F8F] focus:border-[#FCCA3B] focus:outline-none text-sm resize-none"
             value={notes}
             onChange={e => setNotes(e.target.value)}
             rows={3}
