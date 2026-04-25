@@ -150,6 +150,10 @@ const IssuesPage: React.FC = () => {
 
       // STEP C: CRM lead — fire-and-forget, non-fatal
       try {
+        const allPhotoUrls = [
+          ...(signPhotoUrls || []),
+          ...(surroundingPhotoUrls || []),
+        ];
         await supabase.from('leads').insert({
           id: crypto.randomUUID(),
           source: 'PATROL',
@@ -162,6 +166,7 @@ const IssuesPage: React.FC = () => {
           notes: notes || null,
           status: 'new',
           organisation_id: ORG_ID,
+          photos: allPhotoUrls,
           created_at: new Date().toISOString(),
         });
       } catch {

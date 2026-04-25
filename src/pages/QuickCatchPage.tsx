@@ -137,6 +137,7 @@ const QuickCatchPage: React.FC = () => {
         sign_type: signType || null,
         issue_type: issueType || null,
         notes: notes.trim() || null,
+        photos: uploadedUrls,
         status: 'new',
         organisation_id: '8239bb55-2423-43c1-bb54-6370765f2275',
         created_at: new Date().toISOString(),
