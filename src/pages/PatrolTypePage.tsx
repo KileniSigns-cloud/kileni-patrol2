@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { cls, C } from '../lib/ui';
 import { usePatrolSession } from '../context/PatrolSessionContext';
 import TimerBar from '../components/layout/TimerBar';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const PATROL_OPTIONS = [
   {
@@ -50,9 +51,9 @@ const PatrolTypePage: React.FC = () => {
       <div className="pt-16 px-5 flex justify-between items-center">
         <button
           onClick={() => navigate(`/photos/${sessionId}`)}
-          className="text-[#8F8F8F] text-sm"
+          className="flex items-center gap-1 text-[#8F8F8F] text-sm"
         >
-          ← Back
+          <ChevronLeft className="w-5 h-5" /> Back
         </button>
         <span className="text-xs font-semibold text-[#8F8F8F]">6 OF 9</span>
       </div>
@@ -96,7 +97,7 @@ const PatrolTypePage: React.FC = () => {
           disabled={!selected}
           className={cls.btnPrimary}
         >
-          Continue →
+          <span className="flex items-center justify-center gap-1.5">Continue <ChevronRight className="w-5 h-5" /></span>
         </button>
       </div>
     </div>

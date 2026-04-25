@@ -1,26 +1,22 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { usePatrolSession } from '../context/PatrolSessionContext';
+import { useGPS } from '../hooks/useGPS';
 import { cls, C } from '../lib/ui';
 import TimerBar from '../components/layout/TimerBar';
-
-type GpsStatus = 'idle' | 'loading' | 'success' | 'denied' | 'error';
+import { ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
 
 const AddBusinessPage: React.FC = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
   const { sessionId: activeSessionId, setBusinessId, setBusinessName } = usePatrolSession();
 
+  const { latitude, longitude, accuracy, status: gpsStatus, errorMessage: gpsErrorMessage, retry: retryGPS } = useGPS();
+
   const [businessName, setBusinessNameInput] = useState('');
   const [address, setAddress] = useState('');
   const [notes, setNotes] = useState('');
-
-  // GPS state machine — all local, never in global state
-  const [gpsStatus, setGpsStatus] = useState<GpsStatus>('idle');
-  const [lat, setLat] = useState<number | null>(null);
-  const [lng, setLng] = useState<number | null>(null);
-  const [accuracy, setAccuracy] = useState<number | null>(null);
 
   // Submit state
   const [loading, setLoading] = useState(false);
@@ -42,26 +38,6 @@ const AddBusinessPage: React.FC = () => {
     );
   }
 
-  const handleGetGPS = () => {
-    if (!navigator.geolocation) {
-      setGpsStatus('error');
-      return;
-    }
-    setGpsStatus('loading');
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        setLat(pos.coords.latitude);
-        setLng(pos.coords.longitude);
-        setAccuracy(Math.round(pos.coords.accuracy));
-        setGpsStatus('success');
-      },
-      err => {
-        setGpsStatus(err.code === err.PERMISSION_DENIED ? 'denied' : 'error');
-      },
-      { timeout: 10000, enableHighAccuracy: true }
-    );
-  };
-
   const showErrorToast = (msg: string) => {
     setError(msg);
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -78,10 +54,10 @@ const AddBusinessPage: React.FC = () => {
           organisation_id: '8239bb55-2423-43c1-bb54-6370765f2275',
           name: businessName || null,
           address: address || null,
-          lat: gpsStatus === 'success' ? lat : null,
-          lng: gpsStatus === 'success' ? lng : null,
-          gps_latitude: gpsStatus === 'success' ? lat : null,
-          gps_longitude: gpsStatus === 'success' ? lng : null,
+          lat: gpsStatus === 'success' ? latitude : null,
+          lng: gpsStatus === 'success' ? longitude : null,
+          gps_latitude: gpsStatus === 'success' ? latitude : null,
+          gps_longitude: gpsStatus === 'success' ? longitude : null,
           gps_captured_at: gpsStatus === 'success' ? new Date().toISOString() : null,
           notes: notes || null,
           date_added: new Date().toISOString(),
@@ -109,9 +85,9 @@ const AddBusinessPage: React.FC = () => {
       <div className="pt-16 px-5 flex justify-between items-center">
         <button
           onClick={() => navigate(`/patrol/${sessionId}`)}
-          className="text-[#8F8F8F] text-sm"
+          className="flex items-center gap-1 text-[#8F8F8F] text-sm"
         >
-          ← Back
+          <ChevronLeft className="w-5 h-5" /> Back
         </button>
         <span className="text-xs font-semibold text-[#8F8F8F]">4 OF 9</span>
       </div>
@@ -139,34 +115,34 @@ const AddBusinessPage: React.FC = () => {
         {/* GPS card */}
         <div className="bg-[#1C1C1E] border border-[#2A2A2A] rounded-2xl p-5 mt-6">
           <div className="flex items-center gap-2 mb-4">
-            <span className="text-[#FCCA3B] leading-none">📍</span>
+            <MapPin className="w-5 h-5 text-[#FCCA3B]" />
             <label className="text-xs font-bold tracking-widest text-[#8F8F8F]">LOCATION</label>
           </div>
 
           {gpsStatus === 'idle' && (
             <button
-              onClick={handleGetGPS}
+              onClick={retryGPS}
               className="border border-[#FCCA3B] text-[#FCCA3B] rounded-full px-6 py-2 text-sm font-semibold hover:opacity-80 active:opacity-60 transition-opacity"
             >
               Get GPS Location
             </button>
           )}
 
-          {gpsStatus === 'loading' && (
+          {gpsStatus === 'capturing' && (
             <div className="flex items-center gap-3">
               <div className="w-5 h-5 border-2 border-[#FCCA3B] border-t-transparent rounded-full animate-spin flex-shrink-0" />
               <span className="text-sm text-[#8F8F8F]">Getting location…</span>
             </div>
           )}
 
-          {gpsStatus === 'success' && lat !== null && lng !== null && (
+          {gpsStatus === 'success' && latitude !== null && longitude !== null && (
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 bg-[#30D158] rounded-full flex-shrink-0" />
                 <span className="text-white text-sm font-semibold">Location acquired</span>
               </div>
               <p className="font-mono text-xs text-[#8F8F8F]">
-                {lat.toFixed(6)}, {lng.toFixed(6)}
+                {latitude.toFixed(6)}, {longitude.toFixed(6)}
               </p>
               <div className="flex items-center gap-2">
                 {accuracy !== null && (
@@ -174,27 +150,25 @@ const AddBusinessPage: React.FC = () => {
                     ±{accuracy}m
                   </span>
                 )}
-                <button onClick={() => setGpsStatus('idle')} className="text-xs text-[#FCCA3B] underline ml-1">
+                <button onClick={retryGPS} className="text-xs text-[#FCCA3B] underline ml-1">
                   Retry
                 </button>
               </div>
             </div>
           )}
 
-          {(gpsStatus === 'denied' || gpsStatus === 'error') && (
+          {gpsStatus === 'error' && (
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <span className="leading-none">⚠️</span>
+                <MapPin className="w-4 h-4 text-red-400 flex-shrink-0" />
                 <span className="text-sm font-semibold text-red-400">Location unavailable</span>
               </div>
-              <p className="text-xs text-[#8F8F8F] leading-relaxed">
-                GPS was denied or timed out. Location will not be saved. You can still submit.
-              </p>
+              <p className="text-xs text-[#8F8F8F] leading-relaxed">{gpsErrorMessage}</p>
               <button
-                onClick={handleGetGPS}
+                onClick={retryGPS}
                 className="border border-[#FCCA3B] text-[#FCCA3B] rounded-full px-6 py-2 text-sm font-semibold hover:opacity-80 active:opacity-60 transition-opacity"
               >
-                Get GPS Location
+                Retry
               </button>
             </div>
           )}
@@ -250,7 +224,7 @@ const AddBusinessPage: React.FC = () => {
               Saving…
             </span>
           ) : (
-            'Save & Add Photos →'
+            <span className="flex items-center justify-center gap-1.5">Save & Add Photos <ChevronRight className="w-5 h-5" /></span>
           )}
         </button>
       </div>

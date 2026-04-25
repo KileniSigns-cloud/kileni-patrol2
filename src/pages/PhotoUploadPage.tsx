@@ -5,6 +5,7 @@ import { cls, C } from '../lib/ui';
 import { usePatrolSession } from '../context/PatrolSessionContext';
 import { usePatrolStore } from '../store/patrol.store';
 import TimerBar from '../components/layout/TimerBar';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const MAX_SIGN = 8;
 const MAX_SURROUNDING = 4;
@@ -163,9 +164,9 @@ const PhotoUploadPage: React.FC = () => {
       <div className="pt-16 px-5 flex justify-between items-center">
         <button
           onClick={() => navigate(`/add-business/${sessionId}`)}
-          className="text-[#8F8F8F] text-sm"
+          className="flex items-center gap-1 text-[#8F8F8F] text-sm"
         >
-          ← Back
+          <ChevronLeft className="w-5 h-5" /> Back
         </button>
         <span className="text-xs font-semibold text-[#8F8F8F]">5 OF 9</span>
       </div>
@@ -244,7 +245,7 @@ const PhotoUploadPage: React.FC = () => {
               Uploading {Math.min(uploadCount + 1, uploadTotal)} of {uploadTotal}…
             </>
           ) : (
-            'Continue →'
+            <span className="flex items-center justify-center gap-1.5">Continue <ChevronRight className="w-5 h-5" /></span>
           )}
         </button>
       </div>

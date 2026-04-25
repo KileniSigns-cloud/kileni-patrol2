@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { usePatrolStore } from '../store/patrol.store';
 import BottomNav from '../components/layout/BottomNav';
+import { ChevronRight } from 'lucide-react';
 
 const todayLabel = new Date().toLocaleDateString('en-US', {
   weekday: 'long',
@@ -124,7 +125,7 @@ const RoutesPage: React.FC = () => {
                   </div>
 
                   {/* Chevron */}
-                  <span className="text-[#8F8F8F] text-lg leading-none flex-shrink-0">›</span>
+                  <ChevronRight className="w-5 h-5 text-[#8F8F8F] flex-shrink-0" />
                 </button>
               );
             })}

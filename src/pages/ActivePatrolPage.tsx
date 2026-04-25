@@ -5,6 +5,7 @@ import { usePatrolStore } from '../store/patrol.store';
 import { supabase } from '../lib/supabase';
 import { cls } from '../lib/ui';
 import TimerBar from '../components/layout/TimerBar';
+import { Plus } from 'lucide-react';
 
 function formatDuration(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -89,7 +90,7 @@ const ActivePatrolPage: React.FC = () => {
         onClick={() => navigate(`/add-business/${sessionId}`)}
         className="bg-[#1C1C1E] border-2 border-[#2A2A2A] rounded-3xl p-10 mx-5 mt-8 flex flex-col items-center cursor-pointer hover:border-[#FCCA3B] transition-colors active:scale-[0.98]"
       >
-        <span className="text-6xl font-thin text-[#FCCA3B] leading-none">+</span>
+        <Plus className="w-16 h-16 text-[#FCCA3B]" strokeWidth={1.5} />
         <p className="text-white font-bold text-xl mt-4">Inspect a Sign</p>
         <p className="text-[#8F8F8F] text-sm mt-1">Log business + photos + issues</p>
       </button>

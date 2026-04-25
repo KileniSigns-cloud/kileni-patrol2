@@ -9,7 +9,7 @@ type DateFilter = 'today' | 'week' | 'all';
 
 interface Session {
   id: string;
-  patroller_name: string;
+  route_id: string | null;
   started_at: string;
   ended_at: string | null;
   is_complete: boolean;
@@ -67,31 +67,44 @@ const AdminPage: React.FC = () => {
     if (!currentUser) return;
     setLoading(true);
     setError(null);
-    try {
-      const [sessRes, catchRes] = await Promise.all([
-        supabase
-          .from('patrol_sessions')
-          .select('id, patroller_name, started_at, ended_at, is_complete, patrol_routes(name)')
-          .eq('patroller_id', currentUser.id)
-          .order('started_at', { ascending: false })
-          .limit(50),
-        supabase
-          .from('leads')
-          .select('id, business_name, sign_type, issue_type, created_at')
-          .eq('source', 'PATROL_QUICK_CATCH')
-          .eq('organisation_id', currentUser.organisation_id)
-          .order('created_at', { ascending: false })
-          .limit(50),
-      ]);
-      if (sessRes.error) throw sessRes.error;
-      if (catchRes.error) throw catchRes.error;
-      setSessions((sessRes.data ?? []) as Session[]);
-      setCatches(catchRes.data ?? []);
-    } catch (e: any) {
-      setError(e?.message ?? e?.details ?? JSON.stringify(e));
-    } finally {
+
+    const { data: sessData, error: sessError } = await supabase
+      .from('patrol_sessions')
+      .select(`
+        id,
+        route_id,
+        started_at,
+        ended_at,
+        is_complete,
+        patrol_routes(name)
+      `)
+      .order('started_at', { ascending: false })
+      .limit(50);
+
+    if (sessError) {
+      console.error('Query error:', sessError);
+      setError(sessError.message);
       setLoading(false);
+      return;
     }
+
+    const { data: catchData, error: catchError } = await supabase
+      .from('leads')
+      .select('*')
+      .eq('source', 'PATROL_QUICK_CATCH')
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (catchError) {
+      console.error('Query error:', catchError);
+      setError(catchError.message);
+      setLoading(false);
+      return;
+    }
+
+    setSessions((sessData ?? []) as Session[]);
+    setCatches(catchData ?? []);
+    setLoading(false);
   }, [currentUser]);
 
   useEffect(() => { load(); }, [load]);

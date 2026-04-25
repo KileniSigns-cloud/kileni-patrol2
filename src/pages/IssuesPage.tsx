@@ -5,6 +5,7 @@ import { usePatrolSession } from '../context/PatrolSessionContext';
 import { usePatrolStore } from '../store/patrol.store';
 import { supabase } from '../lib/supabase';
 import TimerBar from '../components/layout/TimerBar';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const ORG_ID = '8239bb55-2423-43c1-bb54-6370765f2275';
 
@@ -180,9 +181,9 @@ const IssuesPage: React.FC = () => {
       <div className="pt-16 px-5 flex justify-between items-center">
         <button
           onClick={() => navigate(`/sign-type/${sessionId}`)}
-          className="text-[#8F8F8F] text-sm"
+          className="flex items-center gap-1 text-[#8F8F8F] text-sm"
         >
-          ← Back
+          <ChevronLeft className="w-5 h-5" /> Back
         </button>
         <span className="text-xs font-semibold text-[#8F8F8F]">8 OF 9</span>
       </div>
@@ -278,7 +279,7 @@ const IssuesPage: React.FC = () => {
               Submitting…
             </span>
           ) : (
-            'Submit Inspection →'
+            <span className="flex items-center justify-center gap-1.5">Submit Inspection <ChevronRight className="w-5 h-5" /></span>
           )}
         </button>
       </div>

@@ -6,6 +6,7 @@ import { useCamera } from '../hooks/useCamera';
 import { supabase } from '../lib/supabase';
 import { cls } from '../lib/ui';
 import BottomNav from '../components/layout/BottomNav';
+import { MapPin, Camera, Upload, Zap } from 'lucide-react';
 
 const SIGN_CATEGORIES = ['Illuminated', 'Non-Illuminated'] as const;
 type SignCategory = typeof SIGN_CATEGORIES[number];
@@ -37,7 +38,7 @@ const ISSUE_TYPES = [
 const QuickCatchPage: React.FC = () => {
   const navigate = useNavigate();
   const { currentUser } = usePatrolStore();
-  const gps = useGPS();
+  const { latitude, longitude, status: gpsStatus, errorMessage: gpsErrorMessage, retry: retryGPS } = useGPS();
   const camera = useCamera();
 
   const [businessName, setBusinessName] = useState('');
@@ -62,16 +63,17 @@ const QuickCatchPage: React.FC = () => {
     setSaving(true);
     try {
       const { error: dbErr } = await supabase.from('leads').insert({
+        id: crypto.randomUUID(),
         source: 'PATROL_QUICK_CATCH',
         business_name: businessName.trim(),
-        latitude: gps.lat,
-        longitude: gps.lng,
+        latitude,
+        longitude,
         sign_category: signCategory,
         sign_type: signType || null,
         issue_type: issueType || null,
         notes: notes.trim() || null,
         status: 'new',
-        organisation_id: currentUser?.organisation_id ?? null,
+        organisation_id: '8239bb55-2423-43c1-bb54-6370765f2275',
         created_at: new Date().toISOString(),
       });
       if (dbErr) throw dbErr;
@@ -110,8 +112,8 @@ const QuickCatchPage: React.FC = () => {
         </div>
 
         <div className="w-full max-w-sm space-y-3">
-          <button onClick={reset} className={cls.btnPrimary}>
-            ⚡ Log Another
+          <button onClick={reset} className={`${cls.btnPrimary} flex items-center justify-center gap-2`}>
+            <Zap className="w-5 h-5" /> Log Another
           </button>
           <button
             onClick={() => navigate('/routes')}
@@ -158,25 +160,30 @@ const QuickCatchPage: React.FC = () => {
         <div>
           <label className={cls.label}>Location</label>
           <div className="flex items-center gap-2 text-sm">
-            {gps.status === 'capturing' && (
+            {gpsStatus === 'capturing' && (
               <>
                 <span className="w-3 h-3 rounded-full border-2 border-[#FCCA3B]/40 border-t-[#FCCA3B] animate-spin flex-shrink-0" />
                 <span className={cls.muted}>Capturing GPS…</span>
               </>
             )}
-            {gps.status === 'success' && (
+            {gpsStatus === 'success' && (
               <>
                 <span className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0" />
                 <span className="text-emerald-400 font-semibold text-xs">
-                  {gps.lat?.toFixed(5)}, {gps.lng?.toFixed(5)}
+                  {latitude?.toFixed(5)}, {longitude?.toFixed(5)}
                 </span>
               </>
             )}
-            {gps.status === 'error' && (
-              <>
-                <span className="w-2 h-2 rounded-full bg-red-400 flex-shrink-0" />
-                <span className="text-red-400 text-xs">{gps.error}</span>
-              </>
+            {gpsStatus === 'error' && (
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-red-400 flex-shrink-0" />
+                  <span className="text-red-400 text-xs">{gpsErrorMessage}</span>
+                </div>
+                <button onClick={retryGPS} className="text-[#FCCA3B] text-xs underline text-left">
+                  Retry
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -196,7 +203,7 @@ const QuickCatchPage: React.FC = () => {
                 ? 'border-[#FCCA3B]/40 bg-[#FCCA3B]/5'
                 : 'border-[#2A2A2A] hover:border-[#FCCA3B]/40'
             }`}>
-              <span className="text-2xl">📸</span>
+              <Camera className="w-5 h-5 text-[#8F8F8F]" />
               <span className="text-xs text-[#8F8F8F]">Take Photo</span>
               <input type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={handleFiles} />
             </label>
@@ -205,7 +212,7 @@ const QuickCatchPage: React.FC = () => {
                 ? 'border-[#FCCA3B]/40 bg-[#FCCA3B]/5'
                 : 'border-[#2A2A2A] hover:border-[#FCCA3B]/40'
             }`}>
-              <span className="text-2xl">📁</span>
+              <Upload className="w-5 h-5 text-[#8F8F8F]" />
               <span className="text-xs text-[#8F8F8F]">Upload Photo</span>
               <input type="file" accept="image/*" multiple className="hidden" onChange={handleFiles} />
             </label>
@@ -300,7 +307,7 @@ const QuickCatchPage: React.FC = () => {
               <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
               Saving…
             </span>
-          ) : '⚡ Log Quick Catch'}
+          ) : <span className="flex items-center justify-center gap-2"><Zap className="w-5 h-5" /> Log Quick Catch</span>}
         </button>
       </div>
 

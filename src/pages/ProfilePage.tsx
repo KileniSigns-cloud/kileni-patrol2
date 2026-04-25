@@ -4,6 +4,7 @@ import { usePatrolStore } from '../store/patrol.store';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../lib/supabase';
 import BottomNav from '../components/layout/BottomNav';
+import { Moon, Sun } from 'lucide-react';
 
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -54,9 +55,12 @@ const ProfilePage: React.FC = () => {
           onClick={toggle}
           className="flex items-center justify-between w-full"
         >
-          <span className="text-white font-semibold text-sm">
-            {isDark ? 'Dark Mode' : 'Light Mode'}
-          </span>
+          <div className="flex items-center gap-2">
+            {isDark ? <Moon className="w-5 h-5 text-[#FCCA3B]" /> : <Sun className="w-5 h-5 text-[#8F8F8F]" />}
+            <span className="text-white font-semibold text-sm">
+              {isDark ? 'Dark Mode' : 'Light Mode'}
+            </span>
+          </div>
           {/* Animated pill toggle */}
           <div className={`relative w-12 h-6 rounded-full transition-colors duration-200 flex-shrink-0 ${isDark ? 'bg-[#FCCA3B]' : 'bg-[#2A2A2A]'}`}>
             <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ${isDark ? 'translate-x-6' : 'translate-x-0'}`} />

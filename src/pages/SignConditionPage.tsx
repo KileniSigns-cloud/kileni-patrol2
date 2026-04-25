@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { cls } from '../lib/ui';
 import { usePatrolSession } from '../context/PatrolSessionContext';
 import TimerBar from '../components/layout/TimerBar';
+import { ChevronLeft } from 'lucide-react';
 
 const SignConditionPage: React.FC = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -26,9 +27,9 @@ const SignConditionPage: React.FC = () => {
       <div className="px-4 pt-14 pb-2 flex items-center justify-between">
         <button
           onClick={() => navigate(`/sign-type/${sessionId}`)}
-          className="font-bold text-lg text-white hover:text-gray-300 transition-colors"
+          className="flex items-center gap-1 text-[#8F8F8F] text-sm"
         >
-          ‹
+          <ChevronLeft className="w-5 h-5" /> Back
         </button>
         <span className="text-xs text-gray-600 font-mono">8 of 9</span>
       </div>

@@ -4,6 +4,7 @@ import { usePatrolStore } from '../store/patrol.store';
 import { usePatrolSession } from '../context/PatrolSessionContext';
 import { supabase } from '../lib/supabase';
 import { cls } from '../lib/ui';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const RoutePreviewPage: React.FC = () => {
   const { routeId } = useParams<{ routeId: string }>();
@@ -58,7 +59,7 @@ const RoutePreviewPage: React.FC = () => {
         onClick={() => navigate('/routes')}
         className="flex items-center gap-1 text-[#8F8F8F] text-sm pt-12 px-5"
       >
-        ← <span>Routes</span>
+        <ChevronLeft className="w-5 h-5" /> Routes
       </button>
 
       {/* Route badge pill */}
@@ -116,7 +117,7 @@ const RoutePreviewPage: React.FC = () => {
           disabled={loading}
           className={cls.btnPrimary}
         >
-          {loading ? 'Starting…' : 'Start Patrol →'}
+          {loading ? 'Starting…' : <span className="flex items-center justify-center gap-1.5">Start Patrol <ChevronRight className="w-5 h-5" /></span>}
         </button>
       </div>
     </div>

@@ -7,3 +7,20 @@
   -webkit-tap-highlight-color: transparent;
 }
 body { font-family: 'Roboto', sans-serif; }
+
+html:not(.dark) {
+  background: #FFFFFF;
+  color: #000000;
+}
+html:not(.dark) .bg-\[\#0A0A0A\] {
+  background: #FFFFFF !important;
+}
+html:not(.dark) .text-white {
+  color: #000000 !important;
+}
+html:not(.dark) .bg-\[\#1C1C1E\] {
+  background: #F5F5F5 !important;
+}
+html:not(.dark) .border-\[\#2A2A2A\] {
+  border-color: #E0E0E0 !important;
+}
