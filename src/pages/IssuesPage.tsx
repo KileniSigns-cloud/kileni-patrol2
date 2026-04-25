@@ -125,6 +125,7 @@ const IssuesPage: React.FC = () => {
       // STEP B: INSERT inspection_photos
       const photoInserts = [
         ...(signPhotoUrls || []).map(url => ({
+          id: crypto.randomUUID(),
           inspection_id: inspectionId,
           business_id: businessId,
           photo_url: url,
@@ -132,6 +133,7 @@ const IssuesPage: React.FC = () => {
           created_at: new Date().toISOString(),
         })),
         ...(surroundingPhotoUrls || []).map(url => ({
+          id: crypto.randomUUID(),
           inspection_id: inspectionId,
           business_id: businessId,
           photo_url: url,
@@ -149,6 +151,7 @@ const IssuesPage: React.FC = () => {
       // STEP C: CRM lead — fire-and-forget, non-fatal
       try {
         await supabase.from('leads').insert({
+          id: crypto.randomUUID(),
           source: 'PATROL',
           source_id: inspectionId,
           business_name: ctxBusinessName || 'Unknown',

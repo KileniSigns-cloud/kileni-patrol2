@@ -60,12 +60,75 @@ const QuickCatchPage: React.FC = () => {
   const handleSubmit = async () => {
     setError(null);
     if (!businessName.trim()) { setError('Business name is required.'); return; }
-    if (camera.photos.length === 0) { setError('At least one photo is required.'); return; }
+    if (camera.files.length === 0) { setError('At least one photo is required.'); return; }
     setSaving(true);
     try {
+      const leadId = crypto.randomUUID();
+
+      // STEP A: Upload photos to storage
+      const uploadedUrls: string[] = [];
+      for (const file of camera.files) {
+        const ext = file.name.split('.').pop() || 'jpg';
+        const path = `quick-catch/${leadId}/${Date.now()}.${ext}`;
+        const { error: upErr } = await supabase.storage
+          .from('patrol-photos')
+          .upload(path, file, { upsert: false });
+        if (!upErr) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('patrol-photos')
+            .getPublicUrl(path);
+          uploadedUrls.push(publicUrl);
+        }
+      }
+
+      // STEP B: Create sign_inspection stub so CRM can find photos (non-fatal)
+      let inspectionId: string | null = null;
+      try {
+        const { data: inspData } = await supabase
+          .from('sign_inspections')
+          .insert({
+            organisation_id: '8239bb55-2423-43c1-bb54-6370765f2275',
+            business_name: businessName.trim(),
+            sign_category: signCategory,
+            sign_type: signType || null,
+            patrol_type: 'quick_catch',
+            condition: issueType ? [issueType] : [],
+            condition_rating: issueType ? 'fair' : 'excellent',
+            is_compliant: !issueType,
+            non_compliance_reason: issueType || null,
+            notes: notes.trim() || null,
+            status: 'completed',
+            inspected_at: new Date().toISOString(),
+            date_logged: new Date().toISOString(),
+          })
+          .select('id')
+          .single();
+        if (inspData) inspectionId = inspData.id;
+      } catch {
+        // non-fatal — lead still gets created
+      }
+
+      // STEP C: Insert inspection_photos (non-fatal)
+      if (inspectionId && uploadedUrls.length > 0) {
+        try {
+          await supabase.from('inspection_photos').insert(
+            uploadedUrls.map(url => ({
+              inspection_id: inspectionId,
+              photo_url: url,
+              photo_type: 'sign',
+              created_at: new Date().toISOString(),
+            }))
+          );
+        } catch {
+          // non-fatal
+        }
+      }
+
+      // STEP D: Insert lead
       const { error: dbErr } = await supabase.from('leads').insert({
-        id: crypto.randomUUID(),
+        id: leadId,
         source: 'PATROL_QUICK_CATCH',
+        source_id: inspectionId,
         business_name: businessName.trim(),
         address: address.trim() || null,
         latitude,
