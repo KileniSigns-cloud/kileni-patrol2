@@ -41,8 +41,8 @@ const LoginPage: React.FC = () => {
         <p className="text-xl italic text-black/60">Eyes on every sign.</p>
       </div>
 
-      {/* Right panel — full width on mobile, half on desktop */}
-      <div className="w-full md:w-1/2 bg-white h-screen flex items-center justify-center px-8">
+      {/* Right panel — always light regardless of app theme */}
+      <div className="w-full md:w-1/2 bg-white h-screen flex items-center justify-center px-8" style={{ colorScheme: 'light' }}>
         <div className="w-full max-w-sm">
           <h2 className="text-3xl font-black text-gray-900">Welcome back</h2>
           <p className="text-sm text-gray-400 mt-1 mb-10">Sign in to PATROL</p>
@@ -54,7 +54,7 @@ const LoginPage: React.FC = () => {
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3.5 text-gray-900 focus:border-[#FCCA3B] focus:outline-none transition-colors"
+              className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 text-gray-900 placeholder-gray-400 focus:border-[#FCCA3B] focus:outline-none transition-colors"
             />
           </div>
 
@@ -66,7 +66,7 @@ const LoginPage: React.FC = () => {
               value={password}
               onChange={e => setPassword(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleLogin()}
-              className="w-full border border-gray-200 rounded-xl px-4 py-3.5 text-gray-900 focus:border-[#FCCA3B] focus:outline-none transition-colors"
+              className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 text-gray-900 placeholder-gray-400 focus:border-[#FCCA3B] focus:outline-none transition-colors"
             />
           </div>
 
