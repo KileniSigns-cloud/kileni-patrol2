@@ -4,7 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "build": "tsc -p tsconfig.json && vite build",
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc -b",
+    "test": "node --test \"tests/**/*.test.ts\"",
     "dev": "vite"
   },
   "dependencies": {

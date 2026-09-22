@@ -3,6 +3,8 @@
   email: string;
   name?: string;
   organisation_id: string;
+  /** From public.users. undefined = not loaded yet, null = no role / lookup failed. */
+  role?: string | null;
 }
 export interface PatrolRoute {
   id: string;
@@ -15,6 +17,8 @@ export interface PatrolRoute {
   start_point: string;
   hotspots: string[];
   created_at: string;
+  /** Set when an admin archives the route; archived routes are hidden from patrollers. */
+  archived_at: string | null;
 }
 export interface PatrolSession {
   id: string;

@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabase';
+import * as routesApi from '../lib/routesApi';
+import type { RouteFormValues } from '../lib/routeForm';
 import type { PatrolRoute, User } from '../types';
 
 interface PatrolStore {
@@ -17,11 +19,18 @@ interface PatrolStore {
   setActiveSession: (sessionId: string, routeId: string) => void;
   clearActiveSession: () => void;
   setPendingCount: (count: number) => void;
+  // Admin route management. Each throws an Error with a readable message on failure.
+  getActiveRoutes: () => Promise<routesApi.RouteWithStats[]>;
+  getArchivedRoutes: () => Promise<PatrolRoute[]>;
+  createRoute: (values: RouteFormValues) => Promise<PatrolRoute>;
+  archiveRoute: (routeId: string) => Promise<void>;
+  restoreRoute: (routeId: string) => Promise<void>;
+  getRouteHistory: (routeId: string, page: number) => Promise<routesApi.RouteHistoryPage>;
 }
 
 export const usePatrolStore = create<PatrolStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       currentUser: null,
       routes: [],
       routesLoading: false,
@@ -49,6 +58,7 @@ export const usePatrolStore = create<PatrolStore>()(
           .from('patrol_routes')
           .select('*')
           .eq('organisation_id', userData.organisation_id)
+          .is('archived_at', null)
           .order('name');
 
         if (error) {
@@ -70,6 +80,25 @@ export const usePatrolStore = create<PatrolStore>()(
         set({ activeSessionId: null, activeRouteId: null }),
 
       setPendingCount: (count) => set({ pendingCount: count }),
+
+      getActiveRoutes: async () => routesApi.fetchActiveRoutesWithStats(await routesApi.getOrgId()),
+      getArchivedRoutes: async () => routesApi.fetchArchivedRoutes(await routesApi.getOrgId()),
+      getRouteHistory: (routeId, page) => routesApi.fetchRouteHistory(routeId, page),
+
+      // Mutations refresh the patroller-facing route list so it never shows stale routes.
+      createRoute: async (values) => {
+        const route = await routesApi.createRoute(values);
+        await get().loadRoutes();
+        return route;
+      },
+      archiveRoute: async (routeId) => {
+        await routesApi.archiveRoute(routeId);
+        await get().loadRoutes();
+      },
+      restoreRoute: async (routeId) => {
+        await routesApi.restoreRoute(routeId);
+        await get().loadRoutes();
+      },
     }),
     {
       name: 'patrol-store',

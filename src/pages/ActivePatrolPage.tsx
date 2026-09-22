@@ -3,7 +3,6 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { usePatrolSession } from '../context/PatrolSessionContext';
 import { usePatrolStore } from '../store/patrol.store';
 import { supabase } from '../lib/supabase';
-import { cls } from '../lib/ui';
 import TimerBar from '../components/layout/TimerBar';
 import { Plus } from 'lucide-react';
 

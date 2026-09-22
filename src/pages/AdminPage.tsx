@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase';
 import { usePatrolStore } from '../store/patrol.store';
 import { cls } from '../lib/ui';
 import BottomNav from '../components/layout/BottomNav';
+import { isAdmin } from '../components/ProtectedRoute';
+import { Map as MapIcon } from 'lucide-react';
 
 type TabType = 'sessions' | 'catches';
 type DateFilter = 'today' | 'week' | 'all';
@@ -104,7 +106,9 @@ const AdminPage: React.FC = () => {
       return;
     }
 
-    setSessions((sessData ?? []) as Session[]);
+    // Without generated DB types supabase-js types the to-one patrol_routes embed as an
+    // array; at runtime it is a single object, which is what Session declares.
+    setSessions((sessData ?? []) as unknown as Session[]);
     setCatches(catchData ?? []);
     setLoading(false);
   }, [currentUser]);
@@ -175,13 +179,23 @@ const AdminPage: React.FC = () => {
           <p className={`${cls.stepHeader} mb-1`}>Admin</p>
           <h1 className="text-3xl font-black text-white">{tabTitle}</h1>
         </div>
-        <button
-          onClick={load}
-          disabled={loading}
-          className="w-10 h-10 flex items-center justify-center text-[#8F8F8F] hover:text-white transition-colors rounded-full hover:bg-[#1C1C1E]"
-        >
-          <span className={loading ? 'animate-spin inline-block text-lg' : 'text-lg'}>↻</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {isAdmin(currentUser?.role) && (
+            <button
+              onClick={() => navigate('/admin/routes')}
+              className="min-h-12 px-4 inline-flex items-center gap-2 rounded-xl border border-[#2A2A2A] text-sm font-bold text-white hover:border-[#FCCA3B] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#FCCA3B]"
+            >
+              <MapIcon className="w-4 h-4" aria-hidden /> Routes
+            </button>
+          )}
+          <button
+            onClick={load}
+            disabled={loading}
+            className="w-10 h-10 flex items-center justify-center text-[#8F8F8F] hover:text-white transition-colors rounded-full hover:bg-[#1C1C1E]"
+          >
+            <span className={loading ? 'animate-spin inline-block text-lg' : 'text-lg'}>↻</span>
+          </button>
+        </div>
       </div>
 
       {/* Tab row */}

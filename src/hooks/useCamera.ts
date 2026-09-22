@@ -3,7 +3,7 @@ import { useState } from 'react';
 export function useCamera() {
   const [photos, setPhotos] = useState<string[]>([]);
   const [files, setFiles] = useState<File[]>([]);
-  const [uploading, setUploading] = useState(false);
+  const [uploading] = useState(false);
 
   const capture = async (file: File) => {
     return new Promise<string>((resolve) => {

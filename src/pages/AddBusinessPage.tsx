@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { usePatrolSession } from '../context/PatrolSessionContext';
 import { useGPS } from '../hooks/useGPS';
-import { cls, C } from '../lib/ui';
+import { cls } from '../lib/ui';
 import TimerBar from '../components/layout/TimerBar';
 import { ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
 

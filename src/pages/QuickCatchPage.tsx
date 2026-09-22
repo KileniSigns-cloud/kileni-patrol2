@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { usePatrolStore } from '../store/patrol.store';
 import { useGPS } from '../hooks/useGPS';
 import { useCamera } from '../hooks/useCamera';
 import { supabase } from '../lib/supabase';
@@ -38,7 +37,6 @@ const ISSUE_TYPES = [
 
 const QuickCatchPage: React.FC = () => {
   const navigate = useNavigate();
-  const { currentUser } = usePatrolStore();
   const { latitude, longitude, status: gpsStatus, errorMessage: gpsErrorMessage, retry: retryGPS } = useGPS();
   const camera = useCamera();
 

@@ -23,16 +23,13 @@ const RoutesPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      console.log('Current user:', user);
-      console.log('User org:', user?.user_metadata?.organisation_id);
+      // Archived routes are hidden from patrollers; admins manage them under /admin/routes.
       const { data, error } = await supabase
         .from('patrol_routes')
         .select('*')
+        .is('archived_at', null)
         .order('name');
       if (error) throw error;
-      console.log('Routes fetched:', data?.length);
-      console.log('First route org:', data?.[0]?.organisation_id);
       setRoutes(data || []);
     } catch (err: any) {
       setError(err.message || 'Failed to load routes');
