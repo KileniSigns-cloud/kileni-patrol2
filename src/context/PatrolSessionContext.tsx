@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useRef, useState, useEffect, useCallback } from 'react';
+import { resetForNextSign as nextSignDraft } from '../lib/signFlow';
 
 interface PatrolSessionContextType {
   // State (spec)
@@ -17,6 +18,8 @@ interface PatrolSessionContextType {
   elapsedSeconds: number;
   currentIssues: string[];
   currentNotes: string;
+  /** True after "Log another sign here": same business, patrol type kept, step 6 skipped. */
+  reusingBusiness: boolean;
   // Setters (spec)
   setSessionId: (id: string | null) => void;
   setRouteId: (id: string | null) => void;
@@ -57,6 +60,13 @@ export const PatrolSessionProvider: React.FC<{ children: React.ReactNode }> = ({
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [currentIssues, setCurrentIssues] = useState<string[]>([]);
   const [currentNotes, setCurrentNotes] = useState('');
+  const [reusingBusiness, setReusingBusiness] = useState(false);
+
+  // A newly saved business starts a fresh sign flow, so it is never "reused".
+  const setBusinessIdForNewBusiness = useCallback((id: string | null) => {
+    setBusinessId(id);
+    setReusingBusiness(false);
+  }, []);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -83,6 +93,7 @@ export const PatrolSessionProvider: React.FC<{ children: React.ReactNode }> = ({
     setSurroundingPhotoUrls([]);
     setCurrentIssues([]);
     setCurrentNotes('');
+    setReusingBusiness(false);
     setElapsedSeconds(0);
     stopTimer();
     timerRef.current = setInterval(() => setElapsedSeconds(s => s + 1), 1000);
@@ -104,6 +115,7 @@ export const PatrolSessionProvider: React.FC<{ children: React.ReactNode }> = ({
     setElapsedSeconds(0);
     setCurrentIssues([]);
     setCurrentNotes('');
+    setReusingBusiness(false);
   }, [stopTimer]);
 
   const resetInspection = useCallback(() => {
@@ -119,6 +131,26 @@ export const PatrolSessionProvider: React.FC<{ children: React.ReactNode }> = ({
     // sessionId, routeId, routeName, patrolType are preserved
   }, []);
 
+  // "Log another sign here": keep the business and patrol type, clear the previous sign.
+  const resetForNextSign = useCallback(() => {
+    const next = nextSignDraft({
+      businessId, businessName, patrolType, signCategory, signType, inspectionId,
+      signPhotoUrls, surroundingPhotoUrls, currentIssues, currentNotes, reusingBusiness,
+    });
+    setBusinessId(next.businessId);
+    setBusinessName(next.businessName);
+    setPatrolType(next.patrolType);
+    setSignCategory(next.signCategory);
+    setSignType(next.signType);
+    setInspectionId(next.inspectionId);
+    setSignPhotoUrls(next.signPhotoUrls);
+    setSurroundingPhotoUrls(next.surroundingPhotoUrls);
+    setCurrentIssues(next.currentIssues);
+    setCurrentNotes(next.currentNotes);
+    setReusingBusiness(next.reusingBusiness);
+  }, [businessId, businessName, patrolType, signCategory, signType, inspectionId,
+      signPhotoUrls, surroundingPhotoUrls, currentIssues, currentNotes, reusingBusiness]);
+
   const setPhotoUrls = useCallback((signUrls: string[], surroundingUrls: string[]) => {
     setSignPhotoUrls(signUrls);
     setSurroundingPhotoUrls(surroundingUrls);
@@ -132,13 +164,13 @@ export const PatrolSessionProvider: React.FC<{ children: React.ReactNode }> = ({
       sessionId, routeId, routeName, businessId, businessName,
       patrolType, signCategory, signType, inspectionId,
       signPhotoUrls, surroundingPhotoUrls,
-      elapsedSeconds, currentIssues, currentNotes,
-      setSessionId, setRouteId, setRouteName, setBusinessId, setBusinessName,
+      elapsedSeconds, currentIssues, currentNotes, reusingBusiness,
+      setSessionId, setRouteId, setRouteName, setBusinessId: setBusinessIdForNewBusiness, setBusinessName,
       setPatrolType, setSignCategory, setSignType, setInspectionId,
       setSignPhotoUrls, setSurroundingPhotoUrls,
       setPhotoUrls, setIssues, setNotes,
       startSession, endSession, resetInspection,
-      resetForNextSign: resetInspection,
+      resetForNextSign,
     }}>
       {children}
     </PatrolSessionContext.Provider>

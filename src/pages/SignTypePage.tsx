@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { cls } from '../lib/ui';
 import { usePatrolSession } from '../context/PatrolSessionContext';
 import TimerBar from '../components/layout/TimerBar';
+import { skipsPatrolType } from '../lib/signFlow';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 type Category = 'Illuminated' | 'Non-Illuminated';
@@ -31,7 +32,7 @@ const CATEGORIES: Category[] = ['Illuminated', 'Non-Illuminated'];
 const SignTypePage: React.FC = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
-  const { sessionId: activeSessionId, signCategory: ctxSignCategory, signType: ctxSignType, setSignCategory, setSignType } = usePatrolSession();
+  const { sessionId: activeSessionId, signCategory: ctxSignCategory, signType: ctxSignType, setSignCategory, setSignType, reusingBusiness, patrolType } = usePatrolSession();
 
   const [category, setCategory] = useState<Category | null>(ctxSignCategory as Category | null);
   const [signType, setSignTypeState] = useState<string | null>(ctxSignType);
@@ -66,7 +67,7 @@ const SignTypePage: React.FC = () => {
       {/* Top bar */}
       <div className="pt-16 px-5 flex justify-between items-center">
         <button
-          onClick={() => navigate(`/patrol-type/${sessionId}`)}
+          onClick={() => navigate(skipsPatrolType({ reusingBusiness, patrolType }) ? `/photos/${sessionId}` : `/patrol-type/${sessionId}`)}
           className="flex items-center gap-1 text-[#8F8F8F] text-sm"
         >
           <ChevronLeft className="w-5 h-5" /> Back

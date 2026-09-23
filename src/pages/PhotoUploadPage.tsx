@@ -5,6 +5,7 @@ import { compressImage } from '../lib/imageUtils';
 import { cls, C } from '../lib/ui';
 import { usePatrolSession } from '../context/PatrolSessionContext';
 import { usePatrolStore } from '../store/patrol.store';
+import { skipsPatrolType } from '../lib/signFlow';
 import TimerBar from '../components/layout/TimerBar';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -14,7 +15,7 @@ const MAX_SURROUNDING = 4;
 const PhotoUploadPage: React.FC = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
-  const { sessionId: activeSessionId, setPhotoUrls } = usePatrolSession();
+  const { sessionId: activeSessionId, setPhotoUrls, reusingBusiness, patrolType } = usePatrolSession();
   const { currentUser } = usePatrolStore();
 
   const [signFiles, setSignFiles] = useState<File[]>([]);
@@ -116,7 +117,8 @@ const PhotoUploadPage: React.FC = () => {
     }
 
     setPhotoUrls(signBase64, surroundingBase64);
-    navigate(`/patrol-type/${sessionId}`);
+    // Logging another sign at the same business keeps its patrol type, so step 6 is skipped.
+    navigate(skipsPatrolType({ reusingBusiness, patrolType }) ? `/sign-type/${sessionId}` : `/patrol-type/${sessionId}`);
   };
 
   const PhotoGrid = ({

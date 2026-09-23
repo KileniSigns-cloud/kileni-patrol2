@@ -6,6 +6,7 @@ import { usePatrolStore } from '../store/patrol.store';
 import { supabase } from '../lib/supabase';
 import TimerBar from '../components/layout/TimerBar';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { buildSignInspectionInsert, getSeverity } from '../lib/signFlow';
 
 const ORG_ID = '8239bb55-2423-43c1-bb54-6370765f2275';
 
@@ -21,14 +22,6 @@ const ISSUES = [
   'Other',
 ];
 
-function getSeverity(count: number): string {
-  if (count === 0) return 'excellent';
-  if (count <= 2) return 'good';
-  if (count <= 4) return 'fair';
-  if (count <= 6) return 'poor';
-  return 'critical';
-}
-
 function getSeverityDisplay(count: number): { label: string; pill: string } {
   const rating = getSeverity(count);
   if (rating === 'excellent' || rating === 'good')
@@ -43,9 +36,9 @@ const IssuesPage: React.FC = () => {
   const navigate = useNavigate();
   const {
     sessionId: ctxSessionId, businessId, businessName: ctxBusinessName,
-    patrolType, signCategory, signType,
+    patrolType, signCategory, signType, inspectionId,
     signPhotoUrls, surroundingPhotoUrls,
-    currentIssues, currentNotes,
+    currentIssues, currentNotes, reusingBusiness,
     setIssues, setNotes, setInspectionId,
   } = usePatrolSession();
   const { currentUser } = usePatrolStore();
@@ -82,36 +75,28 @@ const IssuesPage: React.FC = () => {
   const severity = getSeverityDisplay(selected.length);
 
   const handleSubmit = async () => {
-    if (!businessId || !currentUser) return;
+    // Never fail silently: a missing business or user is shown, not swallowed.
+    const insert = buildSignInspectionInsert(
+      {
+        businessId, businessName: ctxBusinessName, patrolType, signCategory, signType, inspectionId,
+        signPhotoUrls, surroundingPhotoUrls, currentIssues: selected, currentNotes: notes, reusingBusiness,
+      },
+      currentUser,
+      notes,
+      new Date().toISOString(),
+    );
+    if (!insert.ok) {
+      setError(insert.error);
+      return;
+    }
     setLoading(true);
     setError(null);
-
-    const selectedIssues = selected;
-    const user = currentUser;
-    const businessName = ctxBusinessName;
 
     try {
       // STEP A: INSERT sign_inspections
       const { data: inspData, error: inspError } = await supabase
         .from('sign_inspections')
-        .insert({
-          business_id: businessId,
-          organisation_id: '8239bb55-2423-43c1-bb54-6370765f2275',
-          business_name: businessName || null,
-          sign_category: signCategory,
-          sign_type: signType,
-          patrol_type: patrolType,
-          condition: selectedIssues,
-          condition_rating: getSeverity(selectedIssues.length),
-          is_compliant: selectedIssues.length === 0,
-          non_compliance_reason: selectedIssues.join(', ') || null,
-          notes: notes || null,
-          status: 'completed',
-          inspected_by: user?.id || null,
-          patroller_name: user?.email || null,
-          inspected_at: new Date().toISOString(),
-          date_logged: new Date().toISOString(),
-        })
+        .insert(insert.row)
         .select()
         .single();
 
