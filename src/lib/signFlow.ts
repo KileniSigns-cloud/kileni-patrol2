@@ -104,13 +104,19 @@ export function getSeverity(count: number): string {
 
 const ORG_ID = '8239bb55-2423-43c1-bb54-6370765f2275';
 
+/**
+ * The id a sign's photos are filed under ({org}/patrol/{id}/…) and its row is inserted with.
+ * Kept while the same sign's photos are retaken; null after a reset, so each sign gets a new one.
+ */
+export const ensureInspectionId = (current: string | null, newId: () => string): string => current ?? newId();
+
 export type InspectionInsertResult =
-  | { ok: true; row: Record<string, unknown> }
+  | { ok: true; inspectionId: string; row: Record<string, unknown> }
   | { ok: false; error: string };
 
 /**
  * The sign_inspections row for the current sign, or a readable reason it can't be saved.
- * Field-for-field the insert IssuesPage has always made.
+ * The insert IssuesPage has always made, plus the id its uploaded photos are filed under.
  */
 export function buildSignInspectionInsert(
   d: SignDraft,
@@ -122,10 +128,15 @@ export function buildSignInspectionInsert(
   if (!d.businessId) {
     return { ok: false, error: 'This sign has no business attached. Go back to the patrol and add the business again.' };
   }
+  if (!d.inspectionId || d.signPhotoUrls.length === 0) {
+    return { ok: false, error: 'Sign not saved: its photos were not uploaded. Go back to Photos and tap Next again.' };
+  }
   const issues = d.currentIssues;
   return {
     ok: true,
+    inspectionId: d.inspectionId,
     row: {
+      id: d.inspectionId,
       business_id: d.businessId,
       organisation_id: ORG_ID,
       business_name: d.businessName || null,

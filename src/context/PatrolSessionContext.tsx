@@ -84,10 +84,14 @@ export const PatrolSessionProvider: React.FC<{ children: React.ReactNode }> = ({
   const [currentNotes, setCurrentNotes] = useState('');
   const [reusingBusiness, setReusingBusiness] = useState(false);
 
-  // A newly saved business starts a fresh sign flow, so it is never "reused".
+  // A newly saved business starts a fresh sign flow, so it is never "reused" and
+  // never inherits the previous sign's inspection id (its photos are filed under it).
   const setBusinessIdForNewBusiness = useCallback((id: string | null) => {
     setBusinessId(id);
     setReusingBusiness(false);
+    setInspectionId(null);
+    setSignPhotoUrls([]);
+    setSurroundingPhotoUrls([]);
   }, []);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);

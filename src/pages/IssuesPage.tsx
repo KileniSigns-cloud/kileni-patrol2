@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Check } from 'lucide-react';
 import { usePatrolSession } from '../context/PatrolSessionContext';
 import { usePatrolStore } from '../store/patrol.store';
 import { supabase } from '../lib/supabase';
 import { buildSignInspectionInsert } from '../lib/signFlow';
+import { buildInspectionPhotoRows } from '../lib/photoStorage';
 import { errorMessage } from '../lib/errors';
 import Screen from '../components/layout/Screen';
 import StepProgress from '../components/flow/StepProgress';
@@ -31,9 +32,11 @@ const IssuesPage: React.FC = () => {
     patrolType, signCategory, signType, inspectionId,
     signPhotoUrls, surroundingPhotoUrls,
     currentIssues, currentNotes, reusingBusiness,
-    setIssues, setNotes, setInspectionId, recordSignSaved,
+    setIssues, setNotes, recordSignSaved,
   } = usePatrolSession();
   const { currentUser } = usePatrolStore();
+  // Inspection id already inserted by this page (a retry then only re-links the photos).
+  const savedSignRef = useRef<string | null>(null);
 
   const [selected, setSelected] = useState<string[]>(currentIssues);
   const [notes, setNotesState] = useState<string>(currentNotes);
@@ -74,49 +77,45 @@ const IssuesPage: React.FC = () => {
     setError(null);
 
     try {
-      // STEP A: INSERT sign_inspections. The on_patrol_inspection_saved trigger
-      // creates or updates the business's CRM lead in the same transaction, so a
-      // lead failure rejects this insert and is shown below instead of swallowed.
-      const { data: inspData, error: inspError } = await supabase
-        .from('sign_inspections')
-        .insert(insert.row)
-        .select()
-        .single();
+      // Photos were uploaded on the Photos step under {org}/patrol/{inspection id}/;
+      // the builder refused the save above if they weren't.
+      const signId = insert.inspectionId;
+      const nowIso = new Date().toISOString();
+      // Throws if anything other than a storage path slipped through (no base64 in rows).
+      const photoRows = buildInspectionPhotoRows(signId, businessId, [
+        ...(signPhotoUrls || []).map(path => ({ path, type: 'sign' as const })),
+        ...(surroundingPhotoUrls || []).map(path => ({ path, type: 'surrounding' as const })),
+      ], nowIso).map(row => ({ id: crypto.randomUUID(), ...row }));
 
-      if (inspError) {
-        console.error('INSP ERROR:', inspError);
-        const msg = errorMessage(inspError, JSON.stringify(inspError));
-        throw new Error(msg.startsWith('Sign not saved') ? msg : `Sign not saved: ${msg}`);
+      // STEP A: INSERT sign_inspections with the id its photos are filed under. The
+      // on_patrol_inspection_saved trigger creates or updates the business's CRM lead in
+      // the same transaction, so a lead failure rejects this insert and is shown below.
+      // Skipped on a retry after STEP B failed, so the sign isn't inserted twice. The next
+      // sign has a new id (resetForNextSign clears it), so it is always inserted.
+      if (savedSignRef.current !== signId) {
+        const { error: inspError } = await supabase
+          .from('sign_inspections')
+          .insert(insert.row)
+          .select('id')
+          .single();
+
+        if (inspError) {
+          console.error('INSP ERROR:', inspError);
+          const msg = errorMessage(inspError, JSON.stringify(inspError));
+          throw new Error(msg.startsWith('Sign not saved') ? msg : `Sign not saved: ${msg}`);
+        }
+        savedSignRef.current = signId;
       }
-      setInspectionId(inspData.id);
-      const inspectionId = inspData.id;
 
-      // STEP B: INSERT inspection_photos
-      const photoInserts = [
-        ...(signPhotoUrls || []).map(url => ({
-          id: crypto.randomUUID(),
-          inspection_id: inspectionId,
-          business_id: businessId,
-          photo_url: url,
-          photo_type: 'sign',
-          created_at: new Date().toISOString(),
-        })),
-        ...(surroundingPhotoUrls || []).map(url => ({
-          id: crypto.randomUUID(),
-          inspection_id: inspectionId,
-          business_id: businessId,
-          photo_url: url,
-          photo_type: 'surrounding',
-          created_at: new Date().toISOString(),
-        })),
-      ];
-
+      // STEP B: INSERT inspection_photos (storage paths).
+      // on_inspection_photo_added appends each path to the sign's CRM lead.
       const { error: photoError } = await supabase
         .from('inspection_photos')
-        .insert(photoInserts);
+        .insert(photoRows);
 
-      // on_inspection_photo_added appends each photo to the sign's CRM lead.
-      if (photoError) throw photoError;
+      if (photoError) {
+        throw new Error(`Sign saved, but its photos were not linked: ${errorMessage(photoError, 'unknown error')}. Tap Save again.`);
+      }
 
       // Session list on Active patrol: count this sign against its business.
       if (businessId) recordSignSaved(businessId, patrolType);

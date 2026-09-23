@@ -26,6 +26,7 @@ test('two signs at the same business are both saved with the same business_id', 
   // Success -> "Log another sign here" -> photos -> sign type -> issues -> save
   const second: SignDraft = {
     ...resetForNextSign(firstSign),
+    inspectionId: 'insp-2', // assigned again on the Photos step
     signPhotoUrls: ['data:sign-2'],
     signCategory: 'Non-Illuminated',
     signType: 'Window Graphics',
@@ -74,10 +75,20 @@ test('saving while signed out is a readable error', () => {
   assert.match(!r.ok ? r.error : '', /signed out/);
 });
 
-test('insert payload is unchanged from the original IssuesPage insert', () => {
+test('saving before the photos were uploaded is a readable error', () => {
+  for (const draft of [{ ...firstSign, inspectionId: null }, { ...firstSign, signPhotoUrls: [] }]) {
+    const r = buildSignInspectionInsert(draft, user, '', NOW);
+    assert.equal(r.ok, false);
+    assert.match(!r.ok ? r.error : '', /photos were not uploaded/);
+  }
+});
+
+test('insert payload is the original IssuesPage insert plus the photos\' inspection id', () => {
   const r = buildSignInspectionInsert(firstSign, user, 'Two letters out', NOW);
   assert.ok(r.ok);
+  assert.equal(r.inspectionId, 'insp-1');
   assert.deepEqual(r.row, {
+    id: 'insp-1',
     business_id: 'biz-42',
     organisation_id: '8239bb55-2423-43c1-bb54-6370765f2275',
     business_name: 'Tim Hortons',

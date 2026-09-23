@@ -2,10 +2,11 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Camera, Check, Store, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { compressImage } from '../lib/imageUtils';
+import { compressToBlob, uploadPhotos } from '../lib/photoStorage';
+import { errorMessage } from '../lib/errors';
 import { usePatrolSession } from '../context/PatrolSessionContext';
 import { usePatrolStore } from '../store/patrol.store';
-import { skipsPatrolType } from '../lib/signFlow';
+import { ensureInspectionId, skipsPatrolType } from '../lib/signFlow';
 import Screen from '../components/layout/Screen';
 import StepProgress from '../components/flow/StepProgress';
 import FlowFooter, { FooterRow } from '../components/flow/FlowFooter';
@@ -27,7 +28,10 @@ function usePreviews(files: File[]): string[] {
 const PhotoUploadPage: React.FC = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
-  const { sessionId: activeSessionId, setPhotoUrls, reusingBusiness, patrolType, businessName } = usePatrolSession();
+  const {
+    sessionId: activeSessionId, setPhotoUrls, reusingBusiness, patrolType, businessName,
+    inspectionId, setInspectionId,
+  } = usePatrolSession();
   const { currentUser } = usePatrolStore();
 
   const [signFiles, setSignFiles] = useState<File[]>([]);
@@ -35,6 +39,7 @@ const PhotoUploadPage: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadCount, setUploadCount] = useState(0);
   const [uploadTotal, setUploadTotal] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const [toRemove, setToRemove] = useState<{ category: Category; index: number } | null>(null);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
 
@@ -65,55 +70,46 @@ const PhotoUploadPage: React.FC = () => {
     else setSurroundingFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  const fileToBase64 = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-
-  const uploadFile = async (file: File): Promise<string | null> => {
-    if (!sessionId) return null;
-    const path = `inspections/${sessionId}/${Date.now()}_${file.name}`;
-    const { error: uploadError } = await supabase.storage
-      .from('patrol-photos')
-      .upload(path, file, { upsert: false });
-    if (uploadError) return null;
-    return supabase.storage.from('patrol-photos').getPublicUrl(path).data.publicUrl;
-  };
-
+  // Photos are uploaded to storage here, before anything else is saved. The sign's
+  // inspection id is fixed now so the files land in {org}/patrol/{inspection_id}/ and
+  // IssuesPage inserts the sign with that same id. Any failure stops here with the error.
   const handleContinue = async () => {
-    if (!currentUser || !sessionId || signFiles.length === 0) return;
+    if (signFiles.length === 0) return;
+    if (!currentUser?.organisation_id) {
+      setError('You are signed out or have no organisation. Sign in again to save photos.');
+      return;
+    }
     setUploading(true);
+    setError(null);
     setUploadCount(0);
     setUploadTotal(totalFiles);
 
-    // Compress files to base64 — guaranteed to work as CRM <img> src
-    const signBase64: string[] = [];
-    for (const file of signFiles) {
-      const raw = await fileToBase64(file);
-      signBase64.push(await compressImage(raw));
-      setUploadCount(prev => prev + 1);
+    try {
+      const id = ensureInspectionId(inspectionId, () => crypto.randomUUID());
+      setInspectionId(id);
+
+      const labelled = [
+        ...signFiles.map((file, i) => ({ file, type: 'sign' as const, name: `sign-${i + 1}` })),
+        ...surroundingFiles.map((file, i) => ({ file, type: 'surrounding' as const, name: `surrounding-${i + 1}` })),
+      ];
+      const photos = [];
+      for (const p of labelled) {
+        // Unique names: going back and retaking photos never collides with an earlier upload.
+        photos.push({ name: `${p.name}-${crypto.randomUUID()}.jpg`, blob: await compressToBlob(p.file) });
+      }
+
+      const paths = await uploadPhotos(supabase, currentUser.organisation_id, 'patrol', id, photos, setUploadCount);
+      const signPaths = paths.filter((_, i) => labelled[i].type === 'sign');
+      const surroundingPaths = paths.filter((_, i) => labelled[i].type === 'surrounding');
+
+      setPhotoUrls(signPaths, surroundingPaths);
+      setUploading(false);
+      // Logging another sign at the same business keeps its patrol type, so step 6 is skipped.
+      navigate(skip ? `/sign-type/${sessionId}` : `/patrol-type/${sessionId}`);
+    } catch (err) {
+      setError(errorMessage(err, 'Photos not uploaded. Check your connection and try again.'));
+      setUploading(false);
     }
-
-    const surroundingBase64: string[] = [];
-    for (const file of surroundingFiles) {
-      const raw = await fileToBase64(file);
-      surroundingBase64.push(await compressImage(raw));
-      setUploadCount(prev => prev + 1);
-    }
-
-    setUploading(false);
-
-    // Upload to storage in background (non-fatal — only needed for inspection_photos secondary path)
-    for (const file of [...signFiles, ...surroundingFiles]) {
-      uploadFile(file).catch(() => {});
-    }
-
-    setPhotoUrls(signBase64, surroundingBase64);
-    // Logging another sign at the same business keeps its patrol type, so step 6 is skipped.
-    navigate(skip ? `/sign-type/${sessionId}` : `/patrol-type/${sessionId}`);
   };
 
   const back = () => {
@@ -151,12 +147,13 @@ const PhotoUploadPage: React.FC = () => {
   return (
     <Screen
       footer={
-        <FlowFooter hint={signFiles.length === 0 ? 'Add at least one sign photo to continue.' : null}>
+        <FlowFooter hint={error ? null : signFiles.length === 0 ? 'Add at least one sign photo to continue.' : null}>
+          {error && <p className="field-err text-center m-0" role="alert">{error}</p>}
           <FooterRow>
             <button className="btn" onClick={back} disabled={uploading}>{reusingBusiness ? 'Cancel' : 'Back'}</button>
             <button className="btn btn-pri" onClick={handleContinue} disabled={uploading || signFiles.length === 0}>
               {uploading
-                ? <><span className="spin" aria-hidden />Processing {Math.min(uploadCount + 1, uploadTotal)} of {uploadTotal}…</>
+                ? <><span className="spin" aria-hidden />Uploading {Math.min(uploadCount + 1, uploadTotal)} of {uploadTotal}…</>
                 : `Next: ${skip ? 'sign type' : 'patrol type'}`}
             </button>
           </FooterRow>
