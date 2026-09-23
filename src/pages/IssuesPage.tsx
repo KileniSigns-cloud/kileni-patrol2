@@ -11,8 +11,6 @@ import StepProgress from '../components/flow/StepProgress';
 import FlowFooter, { FooterRow } from '../components/flow/FlowFooter';
 import NoSession from '../components/flow/NoSession';
 
-const ORG_ID = '8239bb55-2423-43c1-bb54-6370765f2275';
-
 const ISSUES = [
   'Damaged / Impact damage',
   'Loose / Structurally unsafe',
@@ -76,7 +74,9 @@ const IssuesPage: React.FC = () => {
     setError(null);
 
     try {
-      // STEP A: INSERT sign_inspections
+      // STEP A: INSERT sign_inspections. The on_patrol_inspection_saved trigger
+      // creates or updates the business's CRM lead in the same transaction, so a
+      // lead failure rejects this insert and is shown below instead of swallowed.
       const { data: inspData, error: inspError } = await supabase
         .from('sign_inspections')
         .insert(insert.row)
@@ -85,7 +85,8 @@ const IssuesPage: React.FC = () => {
 
       if (inspError) {
         console.error('INSP ERROR:', inspError);
-        throw new Error(inspError.message || JSON.stringify(inspError));
+        const msg = errorMessage(inspError, JSON.stringify(inspError));
+        throw new Error(msg.startsWith('Sign not saved') ? msg : `Sign not saved: ${msg}`);
       }
       setInspectionId(inspData.id);
       const inspectionId = inspData.id;
@@ -114,32 +115,8 @@ const IssuesPage: React.FC = () => {
         .from('inspection_photos')
         .insert(photoInserts);
 
+      // on_inspection_photo_added appends each photo to the sign's CRM lead.
       if (photoError) throw photoError;
-
-      // STEP C: CRM lead — fire-and-forget, non-fatal
-      try {
-        const allPhotoUrls = [
-          ...(signPhotoUrls || []),
-          ...(surroundingPhotoUrls || []),
-        ];
-        await supabase.from('leads').insert({
-          id: crypto.randomUUID(),
-          source: 'PATROL',
-          source_id: inspectionId,
-          business_name: ctxBusinessName || 'Unknown',
-          address: null,
-          sign_type: signType,
-          sign_category: signCategory,
-          issue_type: selected.join(', ') || 'None',
-          notes: notes || null,
-          status: 'new',
-          organisation_id: ORG_ID,
-          photos: allPhotoUrls,
-          created_at: new Date().toISOString(),
-        });
-      } catch {
-        // CRM failure is non-fatal
-      }
 
       // Session list on Active patrol: count this sign against its business.
       if (businessId) recordSignSaved(businessId, patrolType);
