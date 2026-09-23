@@ -1,10 +1,13 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { LogOut, Moon, Sun } from 'lucide-react';
 import { usePatrolStore } from '../store/patrol.store';
 import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../lib/supabase';
-import BottomNav from '../components/layout/BottomNav';
-import { Moon, Sun } from 'lucide-react';
+import Screen from '../components/layout/Screen';
+
+const roleLabel = (role: string | null | undefined) =>
+  role === undefined ? 'Loading…' : role ? role[0].toUpperCase() + role.slice(1) : 'No role';
 
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -25,61 +28,33 @@ const ProfilePage: React.FC = () => {
   };
 
   return (
-    <div className="bg-[#0A0A0A] min-h-screen pb-20">
-      {/* Header */}
-      <div className="px-5 pt-14 pb-6">
-        <p className="text-xs tracking-widest text-[#FCCA3B] uppercase mb-1">Account</p>
-        <h1 className="text-3xl font-black text-white">Profile</h1>
-      </div>
+    <Screen nav>
+      <h1>Profile</h1>
+      <p className="sub">Your account on this device.</p>
 
-      {/* Identity card */}
-      <div className="mx-5 bg-[#1C1C1E] border border-[#2A2A2A] rounded-2xl p-5">
-        <div className="flex items-center gap-4">
-          {/* Initials circle */}
-          <div className="w-16 h-16 rounded-full bg-[#FCCA3B] flex items-center justify-center flex-shrink-0">
-            <span className="text-black font-black text-xl">{initials}</span>
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-white font-semibold text-sm truncate">{currentUser.email}</p>
-            <span className="inline-block mt-1.5 bg-[#FCCA3B] text-black text-[10px] font-black tracking-widest px-2.5 py-0.5 rounded-full uppercase">
-              Admin
-            </span>
-          </div>
+      <div className="card flex items-center gap-4">
+        <div className="w-16 h-16 rounded-full bg-pri text-prit grid place-items-center flex-none">
+          <span className="font-extrabold text-xl">{initials}</span>
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-bold truncate m-0">{currentUser.email}</p>
+          <span className="badge mt-1.5">{roleLabel(currentUser.role)}</span>
         </div>
       </div>
 
-      {/* Appearance */}
-      <div className="mx-5 mt-4 bg-[#1C1C1E] border border-[#2A2A2A] rounded-2xl p-5">
-        <p className="text-[#8F8F8F] text-xs tracking-widest uppercase mb-4">Appearance</p>
-        <button
-          onClick={toggle}
-          className="flex items-center justify-between w-full"
-        >
-          <div className="flex items-center gap-2">
-            {isDark ? <Moon className="w-5 h-5 text-[#FCCA3B]" /> : <Sun className="w-5 h-5 text-[#8F8F8F]" />}
-            <span className="text-white font-semibold text-sm">
-              {isDark ? 'Dark Mode' : 'Light Mode'}
-            </span>
-          </div>
-          {/* Animated pill toggle */}
-          <div className={`relative w-12 h-6 rounded-full transition-colors duration-200 flex-shrink-0 ${isDark ? 'bg-[#FCCA3B]' : 'bg-[#2A2A2A]'}`}>
-            <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ${isDark ? 'translate-x-6' : 'translate-x-0'}`} />
-          </div>
-        </button>
-      </div>
+      <h2 className="section-title">Appearance</h2>
+      <button className="rowcard" onClick={toggle} aria-pressed={isDark}>
+        <span className="icon-tile">{isDark ? <Moon aria-hidden /> : <Sun aria-hidden />}</span>
+        <span className="flex-1 flex flex-col">
+          <span className="row-name">{isDark ? 'Night mode' : 'Day mode'}</span>
+          <span className="row-meta">Tap to switch to {isDark ? 'day' : 'night'} mode</span>
+        </span>
+      </button>
 
-      {/* Sign out */}
-      <div className="mx-5 mt-4">
-        <button
-          onClick={handleSignOut}
-          className="w-full py-4 bg-red-500/10 border border-red-500/30 text-red-400 font-black text-base rounded-2xl hover:bg-red-500/20 transition-colors active:scale-[0.98]"
-        >
-          Sign Out
-        </button>
-      </div>
-
-      <BottomNav />
-    </div>
+      <button className="btn btn-dt btn-lg btn-full mt-6" onClick={handleSignOut}>
+        <LogOut aria-hidden />Sign out
+      </button>
+    </Screen>
   );
 };
 

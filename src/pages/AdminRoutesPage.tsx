@@ -1,18 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Archive, ArchiveRestore, History, Pencil, Plus, RefreshCw } from 'lucide-react';
+import { Archive, History, Map as MapIcon, Pencil, Plus, Undo2 } from 'lucide-react';
 import { usePatrolStore } from '../store/patrol.store';
 import type { RouteWithStats } from '../lib/routesApi';
 import type { PatrolRoute } from '../types';
+import { errorMessage } from '../lib/errors';
+import { plural } from '../lib/patrolHistory';
+import Screen from '../components/layout/Screen';
 import AdminHeader from '../components/admin/AdminHeader';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
+import EmptyState, { LoadError } from '../components/ui/EmptyState';
 import { toast } from '../components/ui/Toast';
-import BottomNav from '../components/layout/BottomNav';
 
 type Tab = 'active' | 'archived';
-
-const focusRing = 'active:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FCCA3B]';
-const actionBtn = `min-h-12 px-4 inline-flex items-center justify-center gap-2 rounded-xl border border-[#2A2A2A] text-sm font-semibold text-white hover:border-[#8F8F8F] transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${focusRing}`;
 
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' });
@@ -39,7 +39,7 @@ const AdminRoutesPage: React.FC = () => {
       setActive(a);
       setArchived(b);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not load routes.');
+      setError(errorMessage(e, 'Could not load routes.'));
     } finally {
       setLoading(false);
     }
@@ -52,11 +52,11 @@ const AdminRoutesPage: React.FC = () => {
     setBusyId(toArchive.id);
     try {
       await archiveRoute(toArchive.id);
-      toast.success(`Archived "${toArchive.name}".`);
+      toast.success(`Archived ${toArchive.name}`);
       setToArchive(null);
       await load();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Could not archive route.');
+      toast.error(errorMessage(e, 'Could not archive route.'));
     } finally {
       setBusyId(null);
     }
@@ -66,10 +66,10 @@ const AdminRoutesPage: React.FC = () => {
     setBusyId(route.id);
     try {
       await restoreRoute(route.id);
-      toast.success(`Restored "${route.name}".`);
+      toast.success(`Restored ${route.name}`);
       await load();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Could not restore route.');
+      toast.error(errorMessage(e, 'Could not restore route.'));
     } finally {
       setBusyId(null);
     }
@@ -82,135 +82,92 @@ const AdminRoutesPage: React.FC = () => {
     if (touchX.current === null) return;
     const dx = e.changedTouches[0].clientX - touchX.current;
     touchX.current = null;
-    if (dx < -70 && tab === 'active') setTab('archived');
-    if (dx > 70 && tab === 'archived') setTab('active');
+    if (dx < -60 && tab === 'active') setTab('archived');
+    if (dx > 60 && tab === 'archived') setTab('active');
   };
 
-  const TabButton = ({ value, label, count }: { value: Tab; label: string; count: number }) => {
-    const selected = tab === value;
-    return (
-      <button
-        role="tab"
-        aria-selected={selected}
-        aria-controls="routes-panel"
-        onClick={() => setTab(value)}
-        className={`relative min-h-12 px-1 mr-6 text-sm font-bold transition-colors ${selected ? 'text-white' : 'text-[#8F8F8F] hover:text-white'} ${focusRing}`}
-      >
-        {label}
-        <span className="ml-2 text-xs font-semibold text-[#8F8F8F]">{loading ? '–' : count}</span>
-        <span
-          aria-hidden
-          className={`absolute left-0 right-0 -bottom-px h-[3px] rounded-full bg-[#FCCA3B] transition-opacity duration-200 ${selected ? 'opacity-100' : 'opacity-0'}`}
-        />
-      </button>
-    );
-  };
+  const openCreate = () => navigate('/admin/routes/create');
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] pb-24">
-      <div className="max-w-3xl mx-auto">
-        <AdminHeader
-          eyebrow="Admin"
-          title="Routes"
-          backTo="/admin"
-          action={
-            <button
-              onClick={() => navigate('/admin/routes/create')}
-              className={`min-h-12 px-4 flex-shrink-0 inline-flex items-center gap-2 rounded-xl bg-[#FCCA3B] text-black font-black hover:brightness-110 transition ${focusRing}`}
-            >
-              <Plus className="w-5 h-5" aria-hidden />
-              <span>Create<span className="hidden sm:inline"> route</span></span>
-            </button>
-          }
-        />
+    <Screen nav>
+      <AdminHeader
+        title="Manage routes"
+        sub="Create, archive and review patrol loops."
+        action={<button className="btn btn-pri btn-sm flex-none" onClick={openCreate}><Plus aria-hidden />New route</button>}
+      />
 
-        <div role="tablist" aria-label="Route status" className="px-4 sm:px-6 border-b border-[#2A2A2A] flex">
-          <TabButton value="active" label="Active" count={active.length} />
-          <TabButton value="archived" label="Archived" count={archived.length} />
-        </div>
+      <div className="seg" role="tablist" aria-label="Route status">
+        {(['active', 'archived'] as const).map((t) => (
+          <button
+            key={t}
+            role="tab"
+            aria-selected={tab === t}
+            aria-pressed={tab === t}
+            aria-controls="routes-panel"
+            onClick={() => setTab(t)}
+          >
+            {t === 'active' ? 'Active' : 'Archived'}
+            <span className="text-mut ml-1">{loading ? '–' : t === 'active' ? active.length : archived.length}</span>
+          </button>
+        ))}
+      </div>
 
-        <div id="routes-panel" role="tabpanel" className="px-4 sm:px-6 pt-4" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-          {loading ? (
-            <div className="flex flex-col gap-3" aria-busy="true">
-              {[0, 1, 2, 3].map((i) => <div key={i} className="h-32 bg-[#1C1C1E] rounded-2xl animate-pulse motion-reduce:animate-none" />)}
+      <div id="routes-panel" role="tabpanel" className="grid gap-2.5 mt-3" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+        {loading ? (
+          [0, 1, 2].map((i) => <div key={i} className="skeleton h-40" aria-busy="true" />)
+        ) : error ? (
+          <LoadError message={error} onRetry={load} />
+        ) : tab === 'active' ? (
+          active.length === 0 ? (
+            <EmptyState
+              icon={MapIcon}
+              title="No active routes"
+              body="Routes are the loops your team patrols. Create one and it shows up for every patroller."
+              action={{ label: 'Create first route', onClick: openCreate }}
+            />
+          ) : active.map((r) => (
+            <div key={r.id} className="card">
+              <span className="badge">{r.code}</span>
+              <div className="row-name mt-1.5">{r.name}</div>
+              {r.description && <div className="row-meta">{r.description}</div>}
+              <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-2.5 text-mut text-sm">
+                <span><b className="text-tx">{r.patrols30d}</b> {plural('patrol', r.patrols30d)}, 30 days</span>
+                <span><b className="text-tx">{r.inspections30d}</b> {plural('inspection', r.inspections30d)}, 30 days</span>
+              </div>
+              <div className="flex flex-wrap gap-2 mt-3.5 [&>.btn]:flex-1 [&>.btn]:min-w-[92px]">
+                <button className="btn btn-sm" onClick={() => navigate(`/admin/routes/${r.id}/history`)}><History aria-hidden />History</button>
+                <button className="btn btn-sm" disabled title="Editing is coming in a later release"><Pencil aria-hidden />Edit</button>
+                <button className="btn btn-sm btn-dt" onClick={() => setToArchive(r)} disabled={busyId === r.id}><Archive aria-hidden />Archive</button>
+              </div>
             </div>
-          ) : error ? (
-            <div className="py-16 flex flex-col items-center gap-4 text-center">
-              <p className="text-red-400 text-sm max-w-sm">{error}</p>
-              <button onClick={load} className={actionBtn}>
-                <RefreshCw className="w-4 h-4" aria-hidden /> Try again
+          ))
+        ) : archived.length === 0 ? (
+          <EmptyState
+            icon={Archive}
+            title="Nothing archived"
+            body="Archived routes land here. Their patrol history stays viewable and you can restore them anytime."
+          />
+        ) : archived.map((r) => (
+          <div key={r.id} className="card">
+            <div className="flex items-center justify-between gap-2">
+              <span className="badge">{r.code}</span>
+              {r.archived_at && <span className="row-meta">Archived {fmtDate(r.archived_at)}</span>}
+            </div>
+            <div className="row-name mt-1.5">{r.name}</div>
+            {r.description && <div className="row-meta">{r.description}</div>}
+            <div className="flex flex-wrap gap-2 mt-3.5 [&>.btn]:flex-1 [&>.btn]:min-w-[92px]">
+              <button className="btn btn-sm" onClick={() => navigate(`/admin/routes/${r.id}/history`)}><History aria-hidden />History</button>
+              <button className="btn btn-sm" onClick={() => restore(r)} disabled={busyId === r.id}>
+                {busyId === r.id ? <><span className="spin" aria-hidden />Restoring…</> : <><Undo2 aria-hidden />Restore</>}
               </button>
             </div>
-          ) : tab === 'active' ? (
-            active.length === 0 ? (
-              <Empty title="No active routes" body="Create a route to make it available to patrollers." />
-            ) : (
-              <ul className="flex flex-col gap-3">
-                {active.map((r) => (
-                  <li key={r.id} className="bg-[#1C1C1E] border border-[#2A2A2A] rounded-2xl p-4">
-                    <button
-                      onClick={() => navigate(`/admin/routes/${r.id}/history`)}
-                      className={`w-full text-left rounded-lg ${focusRing}`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <CodeBadge code={r.code} />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-white font-bold leading-snug">{r.name}</p>
-                          <p className="text-[#8F8F8F] text-sm mt-0.5 capitalize">{r.area_type || 'No area type'}</p>
-                        </div>
-                      </div>
-                      <dl className="mt-4 grid grid-cols-2 gap-3">
-                        <Stat label="Patrols · 30d" value={r.patrols30d} />
-                        <Stat label="Inspections · 30d" value={r.inspections30d} />
-                      </dl>
-                    </button>
-                    <div className="mt-4 grid grid-cols-3 gap-2">
-                      <button onClick={() => navigate(`/admin/routes/${r.id}/history`)} className={actionBtn}>
-                        <History className="w-4 h-4" aria-hidden /> History
-                      </button>
-                      <button onClick={() => setToArchive(r)} disabled={busyId === r.id} className={actionBtn}>
-                        <Archive className="w-4 h-4" aria-hidden /> Archive
-                      </button>
-                      <button disabled title="Editing is coming in a later release" className={actionBtn}>
-                        <Pencil className="w-4 h-4" aria-hidden /> Edit
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )
-          ) : archived.length === 0 ? (
-            <Empty title="No archived routes" body="Archived routes are hidden from patrollers and listed here." />
-          ) : (
-            <ul className="flex flex-col gap-3">
-              {archived.map((r) => (
-                <li key={r.id} className="bg-[#1C1C1E] border border-[#2A2A2A] rounded-2xl p-4">
-                  <div className="flex items-start gap-3">
-                    <CodeBadge code={r.code} muted />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-white font-bold leading-snug">{r.name}</p>
-                      <p className="text-[#8F8F8F] text-sm mt-0.5">
-                        Archived {r.archived_at ? fmtDate(r.archived_at) : ''}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mt-4 grid grid-cols-2 gap-2">
-                    <button onClick={() => restore(r)} disabled={busyId === r.id} className={actionBtn}>
-                      <ArchiveRestore className="w-4 h-4" aria-hidden /> {busyId === r.id ? 'Restoring…' : 'Restore'}
-                    </button>
-                    <button onClick={() => navigate(`/admin/routes/${r.id}/history`)} className={actionBtn}>
-                      <History className="w-4 h-4" aria-hidden /> Details
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+          </div>
+        ))}
       </div>
 
       <ConfirmDialog
         open={toArchive !== null}
+        danger
         title="Archive route?"
         message={`Archive route '${toArchive?.name ?? ''}'? Patrols using this route can still be viewed, but it won't appear in the active routes list.`}
         confirmLabel="Archive"
@@ -218,34 +175,8 @@ const AdminRoutesPage: React.FC = () => {
         onConfirm={confirmArchive}
         onCancel={() => setToArchive(null)}
       />
-
-      <BottomNav />
-    </div>
+    </Screen>
   );
 };
-
-const CodeBadge: React.FC<{ code: string; muted?: boolean }> = ({ code, muted = false }) => (
-  <span
-    className={`flex-shrink-0 min-w-12 h-12 px-2 rounded-xl flex items-center justify-center text-xs font-black tracking-wide ${
-      muted ? 'border border-[#2A2A2A] text-[#8F8F8F]' : 'bg-[#FCCA3B] text-black'
-    }`}
-  >
-    {code}
-  </span>
-);
-
-const Stat: React.FC<{ label: string; value: number }> = ({ label, value }) => (
-  <div className="rounded-xl border border-[#2A2A2A] px-3 py-2">
-    <dt className="text-[11px] font-semibold uppercase tracking-wider text-[#8F8F8F]">{label}</dt>
-    <dd className="text-xl font-black text-white tabular-nums">{value}</dd>
-  </div>
-);
-
-const Empty: React.FC<{ title: string; body: string }> = ({ title, body }) => (
-  <div className="py-16 flex flex-col items-center gap-2 text-center">
-    <p className="text-white font-black text-lg">{title}</p>
-    <p className="text-[#8F8F8F] text-sm max-w-xs">{body}</p>
-  </div>
-);
 
 export default AdminRoutesPage;

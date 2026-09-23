@@ -1,21 +1,33 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Camera, Check, Store, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { compressImage } from '../lib/imageUtils';
-import { cls, C } from '../lib/ui';
 import { usePatrolSession } from '../context/PatrolSessionContext';
 import { usePatrolStore } from '../store/patrol.store';
 import { skipsPatrolType } from '../lib/signFlow';
-import TimerBar from '../components/layout/TimerBar';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import Screen from '../components/layout/Screen';
+import StepProgress from '../components/flow/StepProgress';
+import FlowFooter, { FooterRow } from '../components/flow/FlowFooter';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
+import NoSession from '../components/flow/NoSession';
 
 const MAX_SIGN = 8;
 const MAX_SURROUNDING = 4;
 
+type Category = 'sign' | 'surrounding';
+
+/** Object URLs for previews, revoked when the files change or the page unmounts. */
+function usePreviews(files: File[]): string[] {
+  const urls = useMemo(() => files.map((f) => URL.createObjectURL(f)), [files]);
+  useEffect(() => () => urls.forEach((u) => URL.revokeObjectURL(u)), [urls]);
+  return urls;
+}
+
 const PhotoUploadPage: React.FC = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
-  const { sessionId: activeSessionId, setPhotoUrls, reusingBusiness, patrolType } = usePatrolSession();
+  const { sessionId: activeSessionId, setPhotoUrls, reusingBusiness, patrolType, businessName } = usePatrolSession();
   const { currentUser } = usePatrolStore();
 
   const [signFiles, setSignFiles] = useState<File[]>([]);
@@ -23,38 +35,22 @@ const PhotoUploadPage: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadCount, setUploadCount] = useState(0);
   const [uploadTotal, setUploadTotal] = useState(0);
-  const [error, setError] = useState<string | null>(null);
+  const [toRemove, setToRemove] = useState<{ category: Category; index: number } | null>(null);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
 
   // Stable refs — top level, never conditional
   const signInputRef = useRef<HTMLInputElement>(null);
   const surroundingInputRef = useRef<HTMLInputElement>(null);
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    if (!error) return;
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setError(null), 4000);
-    return () => { if (toastTimer.current) clearTimeout(toastTimer.current); };
-  }, [error]);
+  const signPreviews = usePreviews(signFiles);
+  const surroundingPreviews = usePreviews(surroundingFiles);
 
-  if (!activeSessionId) {
-    return (
-      <div className={`${cls.page} items-center justify-center gap-4 px-6`}>
-        <p className={cls.muted}>No active patrol session.</p>
-        <button onClick={() => navigate('/routes')} className="text-yellow-500 text-sm underline">
-          Back to Routes
-        </button>
-      </div>
-    );
-  }
+  if (!activeSessionId) return <NoSession />;
 
   const totalFiles = signFiles.length + surroundingFiles.length;
-  const progressPct = uploadTotal > 0 ? Math.round((uploadCount / uploadTotal) * 100) : 0;
+  const skip = skipsPatrolType({ reusingBusiness, patrolType });
 
-  const handleFileChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    category: 'sign' | 'surrounding'
-  ) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, category: Category) => {
     const max = category === 'sign' ? MAX_SIGN : MAX_SURROUNDING;
     const existing = category === 'sign' ? signFiles.length : surroundingFiles.length;
     const picked = Array.from(e.target.files ?? []).slice(0, max - existing);
@@ -64,7 +60,7 @@ const PhotoUploadPage: React.FC = () => {
     else setSurroundingFiles(prev => [...prev, ...picked].slice(0, MAX_SURROUNDING));
   };
 
-  const removeFile = (category: 'sign' | 'surrounding', index: number) => {
+  const removeFile = (category: Category, index: number) => {
     if (category === 'sign') setSignFiles(prev => prev.filter((_, i) => i !== index));
     else setSurroundingFiles(prev => prev.filter((_, i) => i !== index));
   };
@@ -89,7 +85,6 @@ const PhotoUploadPage: React.FC = () => {
 
   const handleContinue = async () => {
     if (!currentUser || !sessionId || signFiles.length === 0) return;
-    setError(null);
     setUploading(true);
     setUploadCount(0);
     setUploadTotal(totalFiles);
@@ -118,147 +113,100 @@ const PhotoUploadPage: React.FC = () => {
 
     setPhotoUrls(signBase64, surroundingBase64);
     // Logging another sign at the same business keeps its patrol type, so step 6 is skipped.
-    navigate(skipsPatrolType({ reusingBusiness, patrolType }) ? `/sign-type/${sessionId}` : `/patrol-type/${sessionId}`);
+    navigate(skip ? `/sign-type/${sessionId}` : `/patrol-type/${sessionId}`);
   };
 
-  const PhotoGrid = ({
-    files,
-    category,
-    max,
-    inputRef,
-  }: {
-    files: File[];
-    category: 'sign' | 'surrounding';
-    max: number;
-    inputRef: React.RefObject<HTMLInputElement>;
-  }) => (
+  const back = () => {
+    if (!reusingBusiness) return navigate(`/add-business/${sessionId}`);
+    // Same business: leaving discards this sign only.
+    if (totalFiles > 0) setConfirmDiscard(true);
+    else navigate(`/patrol/${sessionId}`);
+  };
+
+  const grid = (category: Category, previews: string[], max: number, inputRef: React.RefObject<HTMLInputElement>) => (
     <div className="grid grid-cols-3 gap-2">
-      {files.map((file, i) => (
-        <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-gray-800 shadow-lg">
-          <img
-            src={URL.createObjectURL(file)}
-            alt={`${category} ${i + 1}`}
-            className="w-full h-full object-cover"
-          />
+      {previews.map((url, i) => (
+        <div key={url} className="ph">
+          <img src={url} alt={`${category === 'sign' ? 'Sign' : 'Surroundings'} photo ${i + 1}`} />
+          <span className="ph-badge"><Check aria-hidden />Ready</span>
           <button
-            onClick={() => removeFile(category, i)}
-            className="absolute top-1 right-1 w-5 h-5 bg-[#FF3B30] rounded-full flex items-center justify-center text-white text-xs leading-none"
+            className="ph-rm"
+            onClick={() => setToRemove({ category, index: i })}
+            disabled={uploading}
+            aria-label={`Remove ${category === 'sign' ? 'sign' : 'surroundings'} photo ${i + 1}`}
           >
-            ×
+            <X aria-hidden />
           </button>
         </div>
       ))}
-      {files.length < max && (
-        <button
-          onClick={() => inputRef.current?.click()}
-          disabled={uploading}
-          className="border-2 border-dashed border-[#2A2A2A] rounded-xl aspect-square flex flex-col items-center justify-center hover:border-[#FCCA3B]/60 transition-colors active:scale-[0.97] disabled:opacity-40"
-        >
-          <span className="text-2xl text-[#FCCA3B]">📷</span>
-          <span className="text-[#8F8F8F] text-xs mt-1">Add</span>
+      {previews.length < max && (
+        <button className="ph ph-add" onClick={() => inputRef.current?.click()} disabled={uploading}>
+          <Camera aria-hidden />
+          <span>{previews.length ? 'Add' : 'Take photo'}</span>
         </button>
       )}
     </div>
   );
 
   return (
-    <div className={cls.page}>
-      <TimerBar showBack={false} showCancel={false} />
-
+    <Screen
+      footer={
+        <FlowFooter hint={signFiles.length === 0 ? 'Add at least one sign photo to continue.' : null}>
+          <FooterRow>
+            <button className="btn" onClick={back} disabled={uploading}>{reusingBusiness ? 'Cancel' : 'Back'}</button>
+            <button className="btn btn-pri" onClick={handleContinue} disabled={uploading || signFiles.length === 0}>
+              {uploading
+                ? <><span className="spin" aria-hidden />Processing {Math.min(uploadCount + 1, uploadTotal)} of {uploadTotal}…</>
+                : `Next: ${skip ? 'sign type' : 'patrol type'}`}
+            </button>
+          </FooterRow>
+        </FlowFooter>
+      }
+    >
       {/* Hidden stable file inputs — always in DOM, never conditional */}
       <input ref={signInputRef} type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={e => handleFileChange(e, 'sign')} />
       <input ref={surroundingInputRef} type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={e => handleFileChange(e, 'surrounding')} />
 
-      {/* Top bar */}
-      <div className="pt-16 px-5 flex justify-between items-center">
-        <button
-          onClick={() => navigate(`/add-business/${sessionId}`)}
-          className="flex items-center gap-1 text-[#8F8F8F] text-sm"
-        >
-          <ChevronLeft className="w-5 h-5" /> Back
-        </button>
-        <span className="text-xs font-semibold text-[#8F8F8F]">5 OF 9</span>
-      </div>
-
-      {/* Page header */}
-      <div className="px-5 mt-6 pb-2">
-        <p className="text-xs tracking-widest text-[#FCCA3B] uppercase">CAPTURE EVIDENCE</p>
-        <h1 className="font-black text-3xl text-white mt-1">Sign Photos</h1>
-      </div>
-
-      {/* Upload progress */}
-      {uploading && (
-        <div className="px-5 pb-3">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs" style={{ color: C.muted }}>
-              Uploading {Math.min(uploadCount + 1, uploadTotal)} of {uploadTotal}…
-            </span>
-            <span className="text-xs font-mono text-[#FCCA3B]">{progressPct}%</span>
-          </div>
-          <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-[#FCCA3B] rounded-full transition-all duration-300"
-              style={{ width: `${progressPct}%` }}
-            />
-          </div>
-        </div>
+      <StepProgress step={1} />
+      {reusingBusiness && (
+        <p className="inline-flex gap-1.5 items-center bg-sf2 rounded-full px-3 py-1.5 font-bold text-sm mt-2.5 mb-0">
+          <Store className="w-4 h-4" aria-hidden />{businessName || 'Unnamed business'}
+        </p>
       )}
+      <h1>Photos</h1>
+      <p className="sub">At least one clear shot of the sign. Photos are saved when you tap Next.</p>
 
-      {/* Photo sections */}
-      <div className="flex-1 px-5 space-y-4 overflow-y-auto pb-32">
+      <h2 className="section-title">
+        Sign photos <span className="tag-req">Required</span>
+        <span className="ml-auto text-sm text-mut font-bold tabular-nums">{signFiles.length}/{MAX_SIGN}</span>
+      </h2>
+      {grid('sign', signPreviews, MAX_SIGN, signInputRef)}
 
-        {/* Sign photos */}
-        <div className={cls.card}>
-          <div className="flex items-baseline gap-1.5 mb-3">
-            <p className={cls.cardTitle}>Sign Photos</p>
-            <span className="text-[#FF3B30] text-sm leading-none">*</span>
-            <span className="text-xs" style={{ color: C.muted }}>(min 1)</span>
-            {signFiles.length > 0 && (
-              <span className="ml-auto text-xs font-mono text-[#FCCA3B]">{signFiles.length}/{MAX_SIGN}</span>
-            )}
-          </div>
-          <PhotoGrid files={signFiles} category="sign" max={MAX_SIGN} inputRef={signInputRef} />
-        </div>
+      <h2 className="section-title">
+        Surroundings <span className="tag-opt">Optional</span>
+        <span className="ml-auto text-sm text-mut font-bold tabular-nums">{surroundingFiles.length}/{MAX_SURROUNDING}</span>
+      </h2>
+      {grid('surrounding', surroundingPreviews, MAX_SURROUNDING, surroundingInputRef)}
 
-        {/* Surrounding photos */}
-        <div className={cls.card}>
-          <div className="flex items-baseline gap-1.5 mb-3">
-            <p className={cls.cardTitle}>Surroundings</p>
-            <span className="text-xs" style={{ color: C.muted }}>(optional)</span>
-            {surroundingFiles.length > 0 && (
-              <span className="ml-auto text-xs font-mono text-[#FCCA3B]">{surroundingFiles.length}/{MAX_SURROUNDING}</span>
-            )}
-          </div>
-          <PhotoGrid files={surroundingFiles} category="surrounding" max={MAX_SURROUNDING} inputRef={surroundingInputRef} />
-        </div>
-      </div>
-
-      {/* Error toast */}
-      {error && (
-        <div className="fixed bottom-24 left-4 right-4 z-50 bg-[#FF3B30] text-white rounded-2xl p-4 text-sm font-semibold flex items-center justify-between gap-3">
-          <span className="flex-1">{error}</span>
-          <button onClick={() => setError(null)} className="text-white/70 hover:text-white text-lg leading-none">×</button>
-        </div>
-      )}
-
-      {/* Bottom action */}
-      <div className={cls.bottomBar}>
-        <button
-          onClick={handleContinue}
-          disabled={uploading || signFiles.length === 0}
-          className={`${cls.btnPrimary} flex items-center justify-center gap-2`}
-        >
-          {uploading ? (
-            <>
-              <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
-              Uploading {Math.min(uploadCount + 1, uploadTotal)} of {uploadTotal}…
-            </>
-          ) : (
-            <span className="flex items-center justify-center gap-1.5">Continue <ChevronRight className="w-5 h-5" /></span>
-          )}
-        </button>
-      </div>
-    </div>
+      <ConfirmDialog
+        open={toRemove !== null}
+        danger
+        title="Remove photo?"
+        message="It will be removed from this sign."
+        confirmLabel="Remove"
+        onConfirm={() => { if (toRemove) removeFile(toRemove.category, toRemove.index); setToRemove(null); }}
+        onCancel={() => setToRemove(null)}
+      />
+      <ConfirmDialog
+        open={confirmDiscard}
+        danger
+        title="Discard this sign?"
+        message="Photos for this sign will be removed. Businesses already logged stay on the patrol."
+        confirmLabel="Discard"
+        onConfirm={() => navigate(`/patrol/${sessionId}`)}
+        onCancel={() => setConfirmDiscard(false)}
+      />
+    </Screen>
   );
 };
 

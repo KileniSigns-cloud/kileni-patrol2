@@ -1,8 +1,9 @@
 import { Navigate, useNavigate } from 'react-router-dom';
 import { ShieldAlert } from 'lucide-react';
 import { usePatrolStore } from '../store/patrol.store';
-
-export const isAdmin = (role: string | null | undefined) => role === 'admin';
+import Screen from './layout/Screen';
+import EmptyState from './ui/EmptyState';
+import { isAdmin } from '../lib/roles';
 
 /**
  * Sends signed-out users to /login. With adminOnly, waits for the role to load from
@@ -18,25 +19,25 @@ const ProtectedRoute: React.FC<{ adminOnly?: boolean; children: React.ReactNode 
 
   if (currentUser.role === undefined) {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center" role="status">
-        <span className="text-[#8F8F8F] text-sm animate-pulse motion-reduce:animate-none">Checking access…</span>
-      </div>
+      <Screen nav>
+        <p className="text-mut mt-6 flex items-center gap-2" role="status"><span className="spin" aria-hidden />Checking access…</p>
+      </Screen>
     );
   }
 
   if (!isAdmin(currentUser.role)) {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] flex flex-col items-center justify-center gap-4 px-8 text-center">
-        <ShieldAlert className="w-12 h-12 text-[#8F8F8F]" aria-hidden />
-        <h1 className="text-xl font-black text-white">Admins only</h1>
-        <p className="text-sm text-[#8F8F8F]">Route management is available to administrators.</p>
-        <button
-          onClick={() => navigate('/routes', { replace: true })}
-          className="min-h-12 px-6 rounded-xl bg-[#FCCA3B] text-black font-black active:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FCCA3B]"
-        >
-          Back to routes
-        </button>
-      </div>
+      <Screen nav>
+        <div className="mt-6">
+          <EmptyState
+            icon={ShieldAlert}
+            tone="alert"
+            title="Admins only"
+            body="Route management is limited to admin accounts. Ask an admin if a route needs changing."
+            action={{ label: 'Back to routes', onClick: () => navigate('/routes', { replace: true }) }}
+          />
+        </div>
+      </Screen>
     );
   }
 

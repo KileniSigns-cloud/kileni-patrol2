@@ -18,20 +18,32 @@ import SignConditionPage from './pages/SignConditionPage';
 import IssuesPage from './pages/IssuesPage';
 import SuccessPage from './pages/SuccessPage';
 import QuickCatchPage from './pages/QuickCatchPage';
-import AdminPage from './pages/AdminPage';
+import PatrolTabPage from './pages/PatrolTabPage';
+import HistoryPage from './pages/HistoryPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminRoutesPage from './pages/AdminRoutesPage';
 import CreateRouteFormPage from './pages/CreateRouteFormPage';
 import RouteHistoryPage from './pages/RouteHistoryPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { Toaster } from './components/ui/Toast';
+import { isAdmin } from './lib/roles';
+
+/** The old /admin page is gone: admins land on route management, everyone else on History. */
+const AdminRedirect: React.FC<{ currentUser: User }> = ({ currentUser }) => {
+  if (currentUser.role === undefined) {
+    return <div className="min-h-screen bg-bg" role="status" aria-label="Loading" />;
+  }
+  return <Navigate to={isAdmin(currentUser.role) ? '/admin/routes' : '/history'} replace />;
+};
 
 const AppLayout: React.FC<{ currentUser: User | null }> = ({ currentUser }) => (
   <Routes>
     <Route path="/login" element={<LoginPage />} />
     <Route path="/routes" element={currentUser ? <RoutesPage /> : <Navigate to="/login" replace />} />
     <Route path="/quick-catch" element={currentUser ? <QuickCatchPage /> : <Navigate to="/login" replace />} />
-    <Route path="/admin" element={currentUser ? <AdminPage /> : <Navigate to="/login" replace />} />
+    <Route path="/patrol" element={currentUser ? <PatrolTabPage /> : <Navigate to="/login" replace />} />
+    <Route path="/history" element={currentUser ? <HistoryPage /> : <Navigate to="/login" replace />} />
+    <Route path="/admin" element={currentUser ? <AdminRedirect currentUser={currentUser} /> : <Navigate to="/login" replace />} />
     <Route path="/admin/routes" element={<ProtectedRoute adminOnly><AdminRoutesPage /></ProtectedRoute>} />
     <Route path="/admin/routes/create" element={<ProtectedRoute adminOnly><CreateRouteFormPage /></ProtectedRoute>} />
     <Route path="/admin/routes/:routeId/history" element={<ProtectedRoute adminOnly><RouteHistoryPage /></ProtectedRoute>} />
@@ -106,8 +118,8 @@ const App: React.FC = () => {
   }, []);
 
   if (loading) return (
-    <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
-      <div className="text-yellow-500 text-sm font-mono animate-pulse">Loading...</div>
+    <div className="min-h-screen bg-bg text-mut flex items-center justify-center gap-2 font-bold" role="status">
+      <span className="spin" aria-hidden />Loading…
     </div>
   );
 

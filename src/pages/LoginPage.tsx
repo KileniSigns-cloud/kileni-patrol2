@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ScanEye } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { usePatrolStore } from '../store/patrol.store';
 
@@ -33,55 +34,40 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen">
-      {/* Left panel — hidden on mobile */}
-      <div className="hidden md:flex w-1/2 bg-[#FCCA3B] h-screen flex-col justify-between p-12">
-        <span className="text-xs font-bold tracking-[0.4em] text-black/50">KILENI SIGNS</span>
-        <h1 className="font-black leading-none text-black" style={{ fontSize: 'clamp(80px, 12vw, 140px)' }}>PATROL</h1>
-        <p className="text-xl italic text-black/60">Eyes on every sign.</p>
+    <div className="min-h-screen bg-bg text-tx flex">
+      {/* Brand panel — wide screens only */}
+      <div className="hidden md:flex w-1/2 bg-pri text-prit flex-col justify-between p-12">
+        <span className="text-xs font-bold tracking-[0.4em] opacity-80">KILENI SIGNS</span>
+        <h1 className="font-extrabold leading-none m-0" style={{ fontSize: 'clamp(80px, 12vw, 140px)' }}>PATROL</h1>
+        <p className="text-xl opacity-80 m-0">Eyes on every sign.</p>
       </div>
 
-      {/* Right panel — always light regardless of app theme */}
-      <div className="w-full md:w-1/2 bg-white h-screen flex items-center justify-center px-8" style={{ colorScheme: 'light' }}>
-        <div className="w-full max-w-sm">
-          <h2 className="text-3xl font-black text-gray-900">Welcome back</h2>
-          <p className="text-sm text-gray-400 mt-1 mb-10">Sign in to PATROL</p>
-
-          {/* Email */}
-          <div className="mb-4">
-            <label className="block text-xs font-bold tracking-widest text-gray-400 mb-2">EMAIL</label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 text-gray-900 placeholder-gray-400 focus:border-[#FCCA3B] focus:outline-none transition-colors"
-            />
+      <div className="w-full md:w-1/2 flex items-center justify-center px-6 py-12">
+        <form
+          className="w-full max-w-sm"
+          onSubmit={(e) => { e.preventDefault(); if (email && password && !loading) handleLogin(); }}
+        >
+          <div className="flex items-center gap-2 font-extrabold text-[19px] mb-8 md:hidden">
+            <span className="w-[34px] h-[34px] rounded-[10px] bg-pri text-prit grid place-items-center">
+              <ScanEye className="w-5 h-5" aria-hidden />
+            </span>
+            Patrol
           </div>
+          <h1>Welcome back</h1>
+          <p className="sub">Sign in to Patrol.</p>
 
-          {/* Password */}
-          <div>
-            <label className="block text-xs font-bold tracking-widest text-gray-400 mb-2">PASSWORD</label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleLogin()}
-              className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 text-gray-900 placeholder-gray-400 focus:border-[#FCCA3B] focus:outline-none transition-colors"
-            />
-          </div>
+          <label className="field-label" htmlFor="email">Email</label>
+          <input id="email" type="email" className="input" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} />
 
-          <button
-            onClick={handleLogin}
-            disabled={loading || !email || !password}
-            className="bg-[#FCCA3B] text-black font-bold py-4 rounded-2xl w-full mt-8 text-base tracking-wide active:scale-95 transition-transform disabled:opacity-50"
-          >
-            {loading ? 'Signing in…' : 'Sign In'}
+          <label className="field-label" htmlFor="password">Password</label>
+          <input id="password" type="password" className="input" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} />
+
+          {error && <p className="field-err" role="alert">{error}</p>}
+
+          <button type="submit" className="btn btn-pri btn-lg btn-full mt-8" disabled={loading || !email || !password}>
+            {loading ? <><span className="spin" aria-hidden />Signing in…</> : 'Sign in'}
           </button>
-
-          {error && (
-            <p className="text-red-500 text-sm mt-4 text-center">{error}</p>
-          )}
-        </div>
+        </form>
       </div>
     </div>
   );

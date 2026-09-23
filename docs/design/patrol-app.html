@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Patrol · full app mockup (olive)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.383.0/dist/umd/lucide.min.js"></script>
+<style>
+:root{--bg:#FBF6EC;--sf:#FFFFFF;--sf2:#F5E9D2;--line:#E8D9BB;--tx:#2A2816;--mut:#66604A;--pri:#726E2B;--prit:#FFFFFF;--prix:#635F24;--pris:#EFEEDB;--acc:#AE431E;--accs:#F8E4DA;--ok:#2F7A5E;--oks:#E1F1EA;--sh:0 1px 2px rgba(42,40,22,.05),0 6px 20px rgba(42,40,22,.06);color-scheme:light;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15140E;--sf:#1E1D15;--sf2:#29271C;--line:#3B382A;--tx:#F5EEDC;--mut:#B8AF97;--pri:#B8B35A;--prit:#1A190A;--prix:#C4BF66;--pris:#2E2D14;--acc:#D06224;--accs:#3C2116;--ok:#6FC3A0;--oks:#16302A;--sh:none;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#15140E;--sf:#1E1D15;--sf2:#29271C;--line:#3B382A;--tx:#F5EEDC;--mut:#B8AF97;--pri:#B8B35A;--prit:#1A190A;--prix:#C4BF66;--pris:#2E2D14;--acc:#D06224;--accs:#3C2116;--ok:#6FC3A0;--oks:#16302A;--sh:none;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 Manrope,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--pri);outline-offset:2px}
+[hidden]{display:none!important}
+.app{max-width:560px;margin:0 auto;min-height:100vh}
+#hdr{position:sticky;top:0;z-index:6;background:var(--bg);background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);padding:10px 16px}
+.hrow,.hrow2{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:19px;letter-spacing:-.2px}
+.logo{width:34px;height:34px;border-radius:10px;background:var(--pri);color:var(--prit);display:grid;place-items:center}.logo svg{width:20px;height:20px}
+.hr{display:flex;gap:8px;align-items:center}
+.ib{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--sf);display:grid;place-items:center}
+.ib svg{width:20px;height:20px}
+.seg{display:flex;background:var(--sf2);border-radius:12px;padding:3px;gap:2px}
+.seg button{border:0;background:none;border-radius:9px;padding:0 12px;min-height:40px;font-weight:700;color:var(--mut)}
+.seg button[aria-pressed=true]{background:var(--sf);color:var(--tx);box-shadow:var(--sh)}
+.seg.sm button{min-height:36px;padding:0 10px;font-size:13px}
+.seg.big button{flex:1;min-height:48px}
+.cnt{color:var(--mut);margin-left:4px}
+.live{margin-top:10px;width:100%;display:flex;align-items:center;gap:10px;border:0;border-radius:14px;background:var(--pri);color:var(--prit);padding:0 16px;min-height:50px;font-weight:700}
+.live .lt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.live b{margin-left:auto;font-variant-numeric:tabular-nums;font-size:19px;letter-spacing:.3px}
+.dot{width:10px;height:10px;border-radius:50%;background:currentColor;flex:none;animation:pulse 1.6s infinite}
+main{padding:6px 16px 150px}
+h1{font-size:28px;line-height:1.15;letter-spacing:-.4px;margin:8px 0 4px;font-weight:800}
+h2{font-size:17px;margin:24px 0 10px;font-weight:800;display:flex;align-items:center;gap:8px}
+.sub{color:var(--mut);margin:0 0 16px}
+.badge{display:inline-block;background:var(--pris);color:var(--prix);font-weight:800;font-size:13px;border-radius:8px;padding:3px 8px}
+.req,.opt{font-size:12px;font-weight:700;border-radius:6px;padding:2px 7px}.req{color:var(--acc);background:var(--accs)}.opt{color:var(--mut);background:var(--sf2)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:52px;padding:0 18px;border-radius:14px;border:1px solid var(--line);background:var(--sf);color:var(--tx);font-weight:700;font-size:16px}
+.btn svg{width:20px;height:20px}
+.btn.pri{background:var(--pri);border-color:var(--pri);color:var(--prit)}
+.btn.danger{background:var(--acc);border-color:var(--acc);color:#fff}
+.btn.dt{color:var(--acc)}
+.btn.lg{min-height:56px}.btn.xl{min-height:64px;font-size:18px;border-radius:18px}
+.btn.full{width:100%}.btn.sm{min-height:44px;padding:0 14px;font-size:15px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.back{border:0;background:none;display:inline-flex;align-items:center;gap:2px;color:var(--prix);font-weight:700;min-height:44px;padding:0;margin-left:-4px}
+.back svg{width:20px;height:20px}
+.linkb{border:0;background:none;color:var(--prix);font-weight:700;padding:0;min-height:44px}
+.search{position:relative;margin-bottom:16px}.search svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:20px;height:20px;color:var(--mut)}.search input{padding-left:44px}
+input,select,textarea{width:100%;min-height:52px;border-radius:14px;border:1px solid var(--line);background:var(--sf);padding:12px 14px}
+textarea{min-height:96px;resize:vertical}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--pri);box-shadow:0 0 0 3px var(--pris)}
+.bad{border-color:var(--acc)!important}
+label.f{display:block;font-weight:800;margin:18px 0 6px}label.f span{color:var(--mut);font-weight:600}
+.err{color:var(--acc);font-size:14px;margin-top:6px;font-weight:700}.hint{color:var(--mut);font-size:14px;margin-top:8px}
+.list{display:grid;gap:10px}
+.rcard,.bitem{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--sf);border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:var(--sh);min-height:72px}
+.rcard>svg{color:var(--mut);width:20px;height:20px;flex:none}
+.rmain{flex:1;min-width:0;display:flex;flex-direction:column}
+.rname{font-weight:800;font-size:17px}.rmeta{color:var(--mut);font-size:14px}
+.addsign{color:var(--prix);display:grid}.addsign svg{width:22px;height:22px}
+.ti{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;background:var(--sf2);color:var(--prix);flex:none}.ti svg{width:24px;height:24px}
+.card{background:var(--sf);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--sh)}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0}.facts div{background:var(--sf);border:1px solid var(--line);border-radius:14px;padding:10px 12px}.facts small{display:block;color:var(--mut);font-size:13px}.facts b{font-size:14px}
+@media (max-width:380px){.facts{grid-template-columns:1fr}}
+.hots{list-style:none;padding:0;margin:0;display:grid;gap:8px}.hots li{display:flex;gap:10px;align-items:center;background:var(--sf);border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-weight:700}.hots svg{color:var(--acc);width:20px;height:20px}
+.foot{position:fixed;left:0;right:0;bottom:0;z-index:5;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));background:var(--bg);border-top:1px solid var(--line)}
+.foot .in{max-width:528px;margin:0 auto;display:flex;gap:10px;flex-direction:column}
+.r{display:flex;gap:10px}.r .btn{flex:1}.r .btn.pri,.r .btn.danger{flex:2}
+.fhint{margin:0;color:var(--mut);font-size:14px;text-align:center;font-weight:600}
+#nav{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--sf);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+#nav .in{max-width:560px;margin:0 auto;display:flex}
+#nav button{flex:1;border:0;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:66px;font-size:12px;font-weight:700;color:var(--mut);position:relative}
+#nav button svg{width:24px;height:24px}
+#nav button[aria-current=page]{color:var(--prix)}
+.pip{position:absolute;top:12px;left:calc(50% + 8px);width:9px;height:9px;border-radius:50%;background:var(--acc)}
+.stats3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0}.stats3 div{background:var(--sf);border:1px solid var(--line);border-radius:16px;padding:12px;text-align:center}.stats3 b{display:block;font-size:28px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}.stats3 small{color:var(--mut);font-size:13px;font-weight:600}
+.steps{display:flex;gap:6px;margin:8px 0 6px}.steps i{flex:1;height:5px;border-radius:3px;background:var(--line)}.steps i.on{background:var(--pri)}
+.stepl{font-size:13px;color:var(--mut);font-weight:700}
+.ctx{display:inline-flex;gap:6px;align-items:center;background:var(--sf2);border-radius:999px;padding:6px 12px;font-weight:700;font-size:14px;margin:10px 0 0}.ctx svg{width:16px;height:16px}
+.gps{display:flex;gap:12px;align-items:center;border-radius:16px;padding:14px;margin-bottom:10px}
+.gps.need{background:var(--pris)}.gps.ok{background:var(--oks)}
+.gps>svg{width:28px;height:28px;flex:none}.gps.need>svg{color:var(--prix)}.gps.ok>svg{color:var(--ok)}
+.gps>div{flex:1}.gps small{display:block;color:var(--mut);font-size:14px;font-variant-numeric:tabular-nums}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ph{position:relative;aspect-ratio:1;border-radius:14px;overflow:hidden;background:var(--sf2);border:1px solid var(--line)}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph .up{position:absolute;left:6px;bottom:6px;background:rgba(0,0,0,.7);color:#fff;border-radius:999px;font-size:11px;font-weight:700;padding:3px 8px;display:flex;gap:4px;align-items:center}
+.ph .up svg{width:12px;height:12px}
+.ph .rm{position:absolute;top:6px;right:6px;width:36px;height:36px;border-radius:50%;border:0;background:rgba(0,0,0,.7);color:#fff;display:grid;place-items:center}.ph .rm svg{width:18px;height:18px}
+.ph.add{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:2px dashed var(--pri);background:var(--pris);color:var(--prix);font-weight:800;font-size:14px;cursor:pointer}
+.ph.add svg{width:28px;height:28px}
+.vh{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+.tiles{display:grid;gap:10px}.tiles.two{grid-template-columns:1fr 1fr}
+.tile{display:flex;align-items:center;gap:14px;text-align:left;width:100%;min-height:80px;padding:14px 16px;border-radius:18px;border:2px solid var(--line);background:var(--sf)}
+.tile b{display:block;font-size:17px}.tile small{color:var(--mut);font-size:14px}
+.tile[aria-pressed=true]{border-color:var(--pri);background:var(--pris)}
+.tile[aria-pressed=true] .ti{background:var(--pri);color:var(--prit)}
+.tiles.two .tile{flex-direction:column;align-items:flex-start;min-height:124px;gap:10px}
+.tiles.two .tile b{font-size:15px;line-height:1.3}
+.chk{position:relative;display:flex;align-items:center;gap:14px;min-height:56px;padding:0 14px;border:1px solid var(--line);border-radius:14px;background:var(--sf);font-weight:700;cursor:pointer}
+.chk input{position:absolute;opacity:0;width:1px;height:1px}
+.chk .box{width:26px;height:26px;border-radius:8px;border:2px solid var(--line);display:grid;place-items:center;flex:none;color:transparent}
+.chk .box svg{width:16px;height:16px}
+.chk input:checked+.box{background:var(--acc);border-color:var(--acc);color:#fff}
+.chk:has(input:checked){border-color:var(--acc);background:var(--accs)}
+.chk input:focus-visible+.box{outline:2px solid var(--pri);outline-offset:2px}
+.done{text-align:center;padding-top:20px}.big{width:88px;height:88px;border-radius:50%;background:var(--oks);color:var(--ok);display:grid;place-items:center;margin:0 auto 12px}.big svg{width:48px;height:48px}
+.sum>div{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}.sum>div:last-child{border:0}.sum span{color:var(--mut);font-weight:600}.sum b{text-align:right}
+.mini{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;color:var(--mut);font-size:14px}.mini b{color:var(--tx)}
+.acts{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}.acts .btn{flex:1;min-height:48px;min-width:92px}
+.empty{text-align:center;padding:32px 20px;border:1.5px dashed var(--line);border-radius:18px;background:var(--sf)}
+.ei{width:56px;height:56px;border-radius:16px;background:var(--pris);color:var(--prix);display:grid;place-items:center;margin:0 auto 10px}.ei svg{width:28px;height:28px}
+.empty>b{display:block;font-size:17px}.empty p{color:var(--mut);margin:6px 0 16px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.chip{display:inline-flex;align-items:center;gap:4px;background:var(--pris);color:var(--prix);border-radius:999px;padding:4px 4px 4px 12px;font-size:14px;font-weight:700}
+.chip button{background:none;border:0;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;color:inherit}.chip svg{width:16px;height:16px}
+.addrow{display:flex;gap:8px}.addrow input{flex:1}.addrow .btn{width:52px;padding:0}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:16px;background:var(--sf)}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:15px}
+th,td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font-size:13px;color:var(--mut);font-weight:800;background:var(--sf2)}
+.n{text-align:right;font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:0}
+.inprog{color:var(--prix);font-weight:800}
+.pager{display:flex;align-items:center;justify-content:space-between;margin-top:12px;color:var(--mut);font-size:14px;gap:8px;font-weight:700}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.6);display:grid;place-items:end center;padding:16px;z-index:20}
+@media (min-width:600px){.ov{place-items:center}}
+.dlg{background:var(--sf);border-radius:22px;padding:22px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.dlg h2{margin:0;font-size:20px}.dlg p{color:var(--mut);margin:8px 0 20px}
+.toast{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));right:12px;z-index:30;background:var(--tx);color:var(--bg);border-radius:14px;padding:12px 16px;font-weight:700;display:flex;gap:8px;align-items:center;box-shadow:0 10px 30px rgba(0,0,0,.25);max-width:calc(100% - 24px)}
+.toast svg{width:18px;height:18px;color:var(--ok)}
+.spin{display:inline-block;width:18px;height:18px;border:2.5px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .8s linear infinite}
+.spin.s{width:10px;height:10px;border-width:2px}
+@keyframes sp{to{transform:rotate(360deg)}}@keyframes pulse{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header id="hdr"></header>
+  <main id="main"></main>
+</div>
+<nav id="nav" aria-label="Main"></nav>
+<div id="layer"></div><div id="toastc" aria-live="polite"></div>
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ic=n=>`<i data-lucide="${n}"></i>`;
+const icons=()=>lucide.createIcons();
+const hm=m=>`${Math.floor(m/60)}:${String(m%60).padStart(2,'0')}`;
+const fmtD=iso=>new Date(iso+'T12:00').toLocaleDateString('en-CA',{month:'short',day:'numeric',year:'numeric'});
+const coords=g=>g?`${g.lat.toFixed(5)}, ${g.lng.toFixed(5)}`:'No location';
+const ROUTES=[
+ {id:1,code:'DT-01',name:'Downtown Core',desc:'Yonge St from Queen to Bloor',area:'Commercial',start:'Yonge & Queen',focus:'Illuminated storefronts',hot:['Yonge & Dundas','Bay & Bloor','Eaton Centre west side'],p:9,i:61,arch:null,last:2},
+ {id:2,code:'NY-02',name:'North York Centre',desc:'Yonge corridor, Sheppard to Finch',area:'Mixed',start:'Yonge & Sheppard',focus:'Plaza pylons',hot:['Mel Lastman Square','Yonge & Finch'],p:6,i:38,arch:null,last:4},
+ {id:3,code:'KL-03',name:'Keele Industrial',desc:'Keele St and Finch Ave W plazas',area:'Industrial',start:'Keele & Finch',focus:'Monument signs',hot:['Keele & Steeles'],p:4,i:27,arch:null,last:7},
+ {id:4,code:'SC-04',name:'Scarborough Town Centre',desc:'McCowan and Ellesmere retail',area:'Commercial',start:'McCowan & Ellesmere',focus:'Channel letters',hot:[],p:0,i:0,arch:null,last:null},
+ {id:5,code:'ET-05',name:'Etobicoke Lakeshore',desc:'Lakeshore Blvd W strip',area:'Mixed',start:'Lakeshore & Park Lawn',focus:'',hot:[],p:2,i:11,arch:'2026-09-02',last:21}];
+const ISSUES=['Damaged / Impact damage','Loose / Structurally unsafe','Falling / Leaning','Partially lit','Fully dark / Not illuminated','Peeling graphics','Faded / Sun bleached','Missing letters or elements','Other'];
+const STEPS=['Business','Photos','Patrol type','Sign type','Issues'];
+const FLOW=['biz','photos','ptype','stype','issues','success'];
+const PAST=[
+ {code:'DT-01',name:'Downtown Core',who:'M. Rossi',start:new Date(2026,8,21,19,5),min:84,biz:7,signs:11,photos:26},
+ {code:'NY-02',name:'North York Centre',who:'J. Chen',start:new Date(2026,8,20,10,30),min:62,biz:5,signs:6,photos:14},
+ {code:'KL-03',name:'Keele Industrial',who:'A. Okafor',start:new Date(2026,8,18,9,15),min:47,biz:3,signs:4,photos:9}];
+let S={theme:null,role:'admin',screen:'routes',q:'',route:null,sess:null,biz:null,insp:null,reuse:false,gpsBusy:false,saving:false,
+ a:{tab:'Active',hist:null,page:0,form:null,hots:[],errs:{},busy:false}};
+const newI=pt=>({sign:[],surr:[],ptype:pt||null,cat:'Illuminated',type:null,issues:[],notes:''});
+const dark=()=>S.theme?S.theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;
+const clock=()=>{const t=Math.floor((Date.now()-S.sess.start)/1000);return [t/3600,t%3600/60,t%60].map(v=>String(Math.floor(v)).padStart(2,'0')).join(':')};
+const empty=(i,t,b,btn,id)=>`<div class="empty"><div class="ei">${ic(i)}</div><b>${t}</b><p>${b}</p>${btn?`<button class="btn pri" id="${id}">${btn}</button>`:''}</div>`;
+const foot=h=>`<div class="foot"><div class="in">${h}</div></div>`;
+const stepper=i=>`<div class="steps" aria-hidden="true">${STEPS.map((_,k)=>`<i class="${k<=i?'on':''}"></i>`).join('')}</div><div class="stepl">Step ${i+1} of 5: ${STEPS[i]}</div>`;
+function go(s){S.screen=s;render();scrollTo(0,0)}
+function toast(m){const c=$('#toastc');c.innerHTML=`<div class="toast" role="status">${ic('check-circle-2')}${esc(m)}</div>`;icons();clearTimeout(toast.t);toast.t=setTimeout(()=>c.innerHTML='',3000)}
+function ask({title,body,ok,danger}){return new Promise(res=>{
+ $('#layer').innerHTML=`<div class="ov" id="ov"><div class="dlg" role="dialog" aria-modal="true" aria-labelledby="dlt"><h2 id="dlt">${title}</h2><p>${body}</p><div class="r"><button class="btn" id="dn">Cancel</button><button class="btn ${danger?'danger':'pri'}" id="dy">${ok}</button></div></div></div>`;
+ const done=v=>{$('#layer').innerHTML='';document.removeEventListener('keydown',k);res(v)},k=e=>{if(e.key==='Escape')done(false)};
+ document.addEventListener('keydown',k);$('#dn').onclick=()=>done(false);$('#dy').onclick=()=>done(true);$('#ov').onclick=e=>{if(e.target.id==='ov')done(false)};$('#dy').focus()})}
+async function cancelFlow(){const I=S.insp,b=S.biz,dirty=I.sign.length||I.surr.length||(!S.reuse&&(b.gps||b.name||b.address));
+ if(dirty&&!await ask({title:'Discard this sign?',body:'Photos and details for this sign will be removed. Businesses already logged stay on the patrol.',ok:'Discard',danger:1}))return;go('active')}
+function sample(){const c=document.createElement('canvas');c.width=c.height=240;const x=c.getContext('2d'),g=x.createLinearGradient(0,0,240,240);g.addColorStop(0,'#8A8635');g.addColorStop(1,'#D06224');x.fillStyle=g;x.fillRect(0,0,240,240);x.fillStyle='#fff';x.font='bold 36px sans-serif';x.textAlign='center';x.fillText('OPEN',120,132);return c.toDataURL('image/png')}
+function addP(k,urls){urls.forEach(u=>{const p={url:u,up:false};S.insp[k].push(p);setTimeout(()=>{p.up=true;if(S.screen==='photos')render()},900)});render()}
+function adminSessions(r){const N=r.p?r.p+14:0,W=['M. Rossi','J. Chen','A. Okafor','S. Patel'],o=[];for(let k=0;k<N;k++){const d=new Date(2026,8,22-k*2,k%2?19:9,(k*17)%60);o.push({d,who:W[k%4],dur:k===0?null:35+(k*23)%90,ins:k===0?3:(k*7)%12+1,ph:k===0?7:(k*13)%30+2})}return o}
+
+const V={
+routes(){
+ const rl=()=>{const q=S.q.trim().toLowerCase(),L=ROUTES.filter(r=>!r.arch&&(r.name+' '+r.code).toLowerCase().includes(q));
+  return L.length?`<div class="list">${L.map(r=>`<button class="rcard" data-r="${r.id}"><span class="badge">${esc(r.code)}</span><span class="rmain"><span class="rname">${esc(r.name)}</span><span class="rmeta">${r.hot.length} hotspot${r.hot.length===1?'':'s'}, ${r.last==null?'never patrolled':`last patrol ${r.last} day${r.last===1?'':'s'} ago`}</span></span>${ic('chevron-right')}</button>`).join('')}</div>`
+  :q?empty('search-x','No routes match',`Nothing matches “${esc(S.q)}”. Try a code like DT-01.`):empty('map','No routes yet','An admin adds routes from the Admin tab. They show up here for everyone.')};
+ const bind=()=>$$('[data-r]').forEach(b=>b.onclick=()=>{S.route=ROUTES.find(r=>r.id==b.dataset.r);go('preview')});
+ return{h:`<h1>Routes</h1><p class="sub">Pick a loop to start patrolling.</p><div class="search">${ic('search')}<input id="q" type="search" placeholder="Search by name or code" aria-label="Search routes" value="${esc(S.q)}"></div><div id="rl">${rl()}</div>`,
+ b(){bind();let t;$('#q').oninput=e=>{S.q=e.target.value;clearTimeout(t);t=setTimeout(()=>{$('#rl').innerHTML=rl();icons();bind()},150)}}}},
+preview(){
+ const r=S.route,busy=S.sess&&S.sess.route.id!==r.id,mine=S.sess&&S.sess.route.id===r.id;
+ return{h:`<button class="back" id="bk">${ic('chevron-left')}Routes</button><div><span class="badge">${esc(r.code)}</span></div><h1>${esc(r.name)}</h1><p class="sub">${esc(r.desc)}</p>
+ <div class="facts">${[['Start point',r.start],['Area',r.area],['Focus',r.focus]].map(([k,v])=>`<div><small>${k}</small><b>${esc(v||'Not set')}</b></div>`).join('')}</div>
+ <h2>Hotspots</h2>${r.hot.length?`<ul class="hots">${r.hot.map(h=>`<li>${ic('map-pin')}${esc(h)}</li>`).join('')}</ul>`:`<p class="sub">No hotspots on this route. Log any sign you spot along the way.</p>`}
+ ${foot(`${busy?`<p class="fhint">You're patrolling ${esc(S.sess.route.code)} right now. End that patrol first.</p>`:''}<button class="btn pri xl full" id="go" ${busy?'disabled':''}>${ic(mine?'arrow-right':'play')}${mine?'Back to patrol':'Start patrol'}</button>`)}`,
+ b(){$('#bk').onclick=()=>go('routes');$('#go').onclick=()=>{if(!mine)S.sess={route:r,start:Date.now(),biz:[]};go('active')}}}},
+active(){
+ if(!S.sess)return{h:`<h1>Patrol</h1><p class="sub">Your live patrol shows here.</p>${empty('footprints','No patrol running','Start one from Routes. The timer and every sign you log will show up here.','Go to routes','toR')}`,b(){$('#toR').onclick=()=>go('routes')}};
+ const s=S.sess,signs=s.biz.reduce((a,b)=>a+b.signs.length,0),ph=s.biz.reduce((a,b)=>a+b.signs.reduce((x,y)=>x+y.photos,0),0);
+ return{h:`<span class="badge">${esc(s.route.code)}</span><h1>${esc(s.route.name)}</h1><p class="sub">Started at ${new Date(s.start).toLocaleTimeString('en-CA',{hour:'numeric',minute:'2-digit'})}</p>
+ <div class="stats3"><div><b>${s.biz.length}</b><small>Businesses</small></div><div><b>${signs}</b><small>Signs</small></div><div><b>${ph}</b><small>Photos</small></div></div>
+ <button class="btn pri xl full" id="add">${ic('plus')}Add business</button>
+ <h2>Logged on this patrol</h2>${s.biz.length?`<div class="list">${s.biz.map((b,i)=>`<button class="bitem" data-b="${i}"><span class="ti">${ic('store')}</span><span class="rmain"><span class="rname">${esc(b.name||'Unnamed business')}</span><span class="rmeta">${esc(b.address||coords(b.gps))}, ${b.signs.length} sign${b.signs.length===1?'':'s'}</span></span><span class="addsign" aria-label="Log another sign">${ic('plus')}</span></button>`).join('')}</div><p class="hint">Tap a business to log another sign there.</p>`
+ :empty('store','No businesses yet','Tap Add business when you reach a sign worth logging.')}
+ <button class="btn dt full" id="end" style="margin-top:28px">${ic('square')}End patrol</button>`,
+ b(){$('#add').onclick=()=>{S.biz={name:'',address:'',notes:'',gps:null,signs:[]};S.insp=newI();S.reuse=false;go('biz')};
+  $$('[data-b]').forEach(e=>e.onclick=()=>{S.biz=s.biz[+e.dataset.b];S.insp=newI(S.biz.signs.at(-1)?.ptype);S.reuse=true;go('photos')});
+  $('#end').onclick=async()=>{if(!await ask({title:'End patrol?',body:`You logged ${signs} sign${signs===1?'':'s'} at ${s.biz.length} business${s.biz.length===1?'':'es'}. The timer stops and the patrol moves to History.`,ok:'End patrol',danger:1}))return;
+   PAST.unshift({code:s.route.code,name:s.route.name,who:'You',start:new Date(s.start),min:Math.max(1,Math.round((Date.now()-s.start)/60000)),biz:s.biz.length,signs,photos:ph});S.sess=null;toast('Patrol saved to History');go('history')}}}},
+biz(){
+ const b=S.biz;
+ return{h:`${stepper(0)}<h1>Business</h1><p class="sub">Location is the only must. Add a name if you can read one.</p>
+ ${b.gps?`<div class="gps ok">${ic('check-circle-2')}<div><b>Location captured</b><small>${coords(b.gps)}, ± ${b.gps.acc} m</small></div><button class="btn sm" id="gps">Redo</button></div>`
+ :`<div class="gps need">${ic('crosshair')}<div><b>Location required</b><small>Stand near the sign, then capture.</small></div></div><button class="btn pri lg full" id="gps" ${S.gpsBusy?'disabled':''}>${S.gpsBusy?'<span class="spin"></span>Finding you…':ic('locate-fixed')+'Capture location'}</button>`}
+ <label class="f" for="bn">Business name <span>(optional)</span></label><input id="bn" value="${esc(b.name)}" placeholder="As shown on the sign" autocomplete="off">
+ <label class="f" for="ba">Address <span>(optional)</span></label><input id="ba" value="${esc(b.address)}" placeholder="Street number and name" autocomplete="off">
+ <label class="f" for="bno">Notes <span>(optional)</span></label><textarea id="bno" placeholder="Anything the office should know">${esc(b.notes)}</textarea>
+ ${foot(`${b.gps?'':'<p class="fhint">Capture location to continue.</p>'}<div class="r"><button class="btn" id="cx">Cancel</button><button class="btn pri" id="nx" ${b.gps?'':'disabled'}>Next: photos</button></div>`)}`,
+ b(){$('#bn').oninput=e=>b.name=e.target.value;$('#ba').oninput=e=>b.address=e.target.value;$('#bno').oninput=e=>b.notes=e.target.value;
+  $('#gps').onclick=()=>{S.gpsBusy=true;b.gps=null;render();setTimeout(()=>{S.gpsBusy=false;b.gps={lat:43.7712+Math.random()*.004,lng:-79.4925+Math.random()*.004,acc:4+Math.floor(Math.random()*6)};if(S.screen==='biz')render()},1100)};
+  $('#cx').onclick=cancelFlow;$('#nx').onclick=()=>go('photos')}}},
+photos(){
+ const I=S.insp,ok=I.sign.length>0,skipP=S.reuse&&I.ptype;
+ const grid=k=>`<div class="grid">${I[k].map((p,i)=>`<div class="ph"><img src="${p.url}" alt="${k==='sign'?'Sign':'Surroundings'} photo ${i+1}"><span class="up">${p.up?ic('check')+'Uploaded':'<span class="spin s"></span>Uploading'}</span><button class="rm" data-rm="${k}:${i}" aria-label="Remove photo ${i+1}">${ic('x')}</button></div>`).join('')}<label class="ph add">${ic('camera')}<span>${I[k].length?'Add':'Take photo'}</span><input class="vh" type="file" accept="image/*" capture="environment" multiple data-k="${k}"></label></div>`;
+ return{h:`${stepper(1)}${S.reuse?`<p class="ctx">${ic('store')}${esc(S.biz.name||'Unnamed business')}</p>`:''}<h1>Photos</h1><p class="sub">At least one clear shot of the sign. Each photo uploads as soon as you take it.</p>
+ <h2>Sign photos <span class="req">Required</span></h2>${grid('sign')}<button class="linkb" id="smp">Add sample photo (demo)</button>
+ <h2>Surroundings <span class="opt">Optional</span></h2>${grid('surr')}
+ ${foot(`${ok?'':'<p class="fhint">Add at least one sign photo to continue.</p>'}<div class="r"><button class="btn" id="bk">${S.reuse?'Cancel':'Back'}</button><button class="btn pri" id="nx" ${ok?'':'disabled'}>Next: ${skipP?'sign type':'patrol type'}</button></div>`)}`,
+ b(){$$('input[data-k]').forEach(inp=>inp.onchange=e=>addP(inp.dataset.k,[...e.target.files].map(f=>URL.createObjectURL(f))));
+  $('#smp').onclick=()=>addP('sign',[sample()]);
+  $$('[data-rm]').forEach(b=>b.onclick=async()=>{const[k,i]=b.dataset.rm.split(':');if(await ask({title:'Remove photo?',body:'It will be deleted from this sign.',ok:'Remove',danger:1})){I[k].splice(+i,1);render()}});
+  $('#bk').onclick=S.reuse?cancelFlow:()=>go('biz');$('#nx').onclick=()=>go(skipP?'stype':'ptype')}}},
+ptype(){
+ const I=S.insp,T=[['Day','sun','Faces, structure and graphics in daylight'],['Night','moon','Lighting check: outages and partly lit signs'],['Opportunistic','zap','Spotted outside a planned patrol']];
+ return{h:`${stepper(2)}<h1>Patrol type</h1><p class="sub">How are you seeing this sign?</p><div class="tiles">${T.map(([k,i,d])=>`<button class="tile" data-p="${k}" aria-pressed="${I.ptype===k}"><span class="ti">${ic(i)}</span><span><b>${k}</b><small>${d}</small></span></button>`).join('')}</div>
+ ${foot(`<div class="r"><button class="btn" id="bk">Back</button><button class="btn pri" id="nx" ${I.ptype?'':'disabled'}>Next: sign type</button></div>`)}`,
+ b(){$$('[data-p]').forEach(b=>b.onclick=()=>{I.ptype=b.dataset.p;render();setTimeout(()=>go('stype'),200)});$('#bk').onclick=()=>go('photos');$('#nx').onclick=()=>go('stype')}}},
+stype(){
+ const I=S.insp,T=[['Channel Letters','type'],['LED Cabinet / Sign Box','square'],['Monument Signs','landmark'],['Digital & Electronic Displays','monitor'],['Specialty Illuminated','sparkles'],['Other','shapes']];
+ return{h:`${stepper(3)}<h1>Sign type</h1><p class="sub">Pick lighting first, then the closest match.</p>
+ <div class="seg big" role="group" aria-label="Lighting">${['Illuminated','Non illuminated'].map(c=>`<button data-c="${c}" aria-pressed="${I.cat===c}">${c}</button>`).join('')}</div>
+ <div class="tiles two" style="margin-top:12px">${T.map(([k,i])=>`<button class="tile" data-t="${k}" aria-pressed="${I.type===k}"><span class="ti">${ic(i)}</span><b>${esc(k)}</b></button>`).join('')}</div>
+ ${foot(`<div class="r"><button class="btn" id="bk">Back</button><button class="btn pri" id="nx" ${I.type?'':'disabled'}>Next: issues</button></div>`)}`,
+ b(){$$('[data-c]').forEach(b=>b.onclick=()=>{I.cat=b.dataset.c;render()});$$('[data-t]').forEach(b=>b.onclick=()=>{I.type=b.dataset.t;render();setTimeout(()=>go('issues'),200)});
+  $('#bk').onclick=()=>go(S.reuse&&I.ptype?'photos':'ptype');$('#nx').onclick=()=>go('issues')}}},
+issues(){
+ const I=S.insp;
+ return{h:`${stepper(4)}<h1>Issues and notes</h1><p class="sub">Tick anything wrong. Leave it blank if the sign looks fine.</p>
+ <div class="list">${ISSUES.map(x=>`<label class="chk"><input type="checkbox" data-i="${esc(x)}" ${I.issues.includes(x)?'checked':''}><span class="box">${ic('check')}</span>${esc(x)}</label>`).join('')}</div>
+ <label class="f" for="inn">Notes <span>(optional)</span></label><textarea id="inn" placeholder="What you saw and where on the sign">${esc(I.notes)}</textarea>
+ ${foot(`<div class="r"><button class="btn" id="bk">Back</button><button class="btn pri" id="sv" ${S.saving?'disabled':''}>${S.saving?'<span class="spin"></span>Saving…':ic('check')+'Save sign'}</button></div>`)}`,
+ b(){$$('[data-i]').forEach(c=>c.onchange=()=>{const v=c.dataset.i;I.issues=c.checked?[...I.issues,v]:I.issues.filter(z=>z!==v)});$('#inn').oninput=e=>I.notes=e.target.value;$('#bk').onclick=()=>go('stype');
+  $('#sv').onclick=()=>{S.saving=true;render();setTimeout(()=>{S.saving=false;const b=S.biz;b.signs.push({cat:I.cat,type:I.type,ptype:I.ptype,issues:I.issues,photos:I.sign.length+I.surr.length});if(!S.sess.biz.includes(b))S.sess.biz.push(b);go('success')},700)}}}},
+success(){
+ const b=S.biz,s=b.signs.at(-1);
+ return{h:`<div class="done"><div class="big">${ic('check')}</div><h1>Sign logged</h1><p class="sub">Saved to this patrol.</p></div>
+ <div class="card sum">${[['Business',b.name||'Unnamed business'],['Sign',`${s.cat}, ${s.type}`],['Patrol type',s.ptype],['Photos',s.photos],['Issues',s.issues.length?s.issues.join(', '):'None']].map(([k,v])=>`<div><span>${k}</span><b>${esc(v)}</b></div>`).join('')}</div>
+ ${foot(`<button class="btn pri xl full" id="again">${ic('camera')}Log another sign here</button><button class="btn lg full" id="done">Done</button>`)}`,
+ b(){$('#again').onclick=()=>{S.insp=newI(s.ptype);S.reuse=true;go('photos')};$('#done').onclick=()=>go('active')}}},
+history(){
+ return{h:`<h1>History</h1><p class="sub">Finished patrols, newest first.</p>${PAST.length?`<div class="list">${PAST.map(p=>`<div class="card"><div class="hrow2"><span class="badge">${esc(p.code)}</span><span class="rmeta">${p.start.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})}, ${p.start.toLocaleTimeString('en-CA',{hour:'numeric',minute:'2-digit'})}</span></div><div class="rname" style="margin-top:6px">${esc(p.name)}</div><div class="rmeta">${esc(p.who)}, ${hm(p.min)} h</div><div class="mini"><span><b>${p.biz}</b> businesses</span><span><b>${p.signs}</b> signs</span><span><b>${p.photos}</b> photos</span></div></div>`).join('')}</div>`
+ :empty('clock-3','No patrols yet','Finished patrols land here with their time, signs and photos.')}`}},
+admin(){
+ const A=S.a,act=ROUTES.filter(r=>!r.arch),arc=ROUTES.filter(r=>r.arch),L=A.tab==='Active'?act:arc;
+ const card=r=>{const a=!!r.arch;return`<div class="card"><div class="hrow2"><span class="badge">${esc(r.code)}</span>${a?`<span class="rmeta">Archived ${fmtD(r.arch)}</span>`:''}</div><div class="rname" style="margin-top:6px">${esc(r.name)}</div>${r.desc?`<div class="rmeta">${esc(r.desc)}</div>`:''}
+  ${a?'':`<div class="mini"><span><b>${r.p}</b> patrols, 30 days</span><span><b>${r.i}</b> inspections, 30 days</span></div>`}
+  <div class="acts"><button class="btn sm" data-h="${r.id}">${ic('history')}History</button>${a?`<button class="btn sm" data-rs="${r.id}">${ic('undo-2')}Restore</button>`:`<button class="btn sm" disabled title="Coming later">${ic('pencil')}Edit</button><button class="btn sm dt" data-ar="${r.id}">${ic('archive')}Archive</button>`}</div></div>`};
+ return{h:`<div class="hrow2"><h1>Manage routes</h1><button class="btn pri sm" id="new">${ic('plus')}New route</button></div><p class="sub">Create, archive and review patrol loops.</p>
+ <div class="seg big" role="tablist">${['Active','Archived'].map(t=>`<button role="tab" data-tab="${t}" aria-pressed="${A.tab===t}" aria-selected="${A.tab===t}">${t}<span class="cnt">${t==='Active'?act.length:arc.length}</span></button>`).join('')}</div>
+ <div class="list" id="al" style="margin-top:12px">${L.length?L.map(card).join(''):A.tab==='Active'?empty('map','No active routes','Routes are the loops your team patrols. Create one and it shows up for every patroller.','Create first route','new2'):empty('archive','Nothing archived','Archived routes land here. Their patrol history stays viewable and you can restore them anytime.')}</div>`,
+ b(){const open=()=>{A.form={name:'',code:'',desc:'',area:'',start:'',focus:''};A.hots=[];A.errs={};go('adminNew')};
+  $('#new').onclick=open;$('#new2')?.addEventListener('click',open);
+  $$('[data-tab]').forEach(b=>b.onclick=()=>{A.tab=b.dataset.tab;render()});
+  $$('[data-h]').forEach(b=>b.onclick=()=>{A.hist=+b.dataset.h;A.page=0;go('adminHist')});
+  $$('[data-ar]').forEach(b=>b.onclick=async()=>{const r=ROUTES.find(x=>x.id==b.dataset.ar);if(!await ask({title:'Archive route?',body:`Archive route '${esc(r.name)}'? Patrols using this route can still be viewed, and you can restore it from the Archived tab.`,ok:'Archive',danger:1}))return;r.arch=new Date().toISOString().slice(0,10);toast(`Archived ${r.name}`);render()});
+  $$('[data-rs]').forEach(b=>b.onclick=()=>{const r=ROUTES.find(x=>x.id==b.dataset.rs);r.arch=null;toast(`Restored ${r.name}`);render()});
+  let x0=null;const l=$('#al');l.ontouchstart=e=>x0=e.touches[0].clientX;l.ontouchend=e=>{if(x0==null)return;const dx=e.changedTouches[0].clientX-x0;if(Math.abs(dx)>60){A.tab=dx<0?'Archived':'Active';render()}x0=null}}}},
+adminNew(){
+ const A=S.a,f=A.form,e=A.errs;
+ return{h:`<button class="back" id="bk">${ic('chevron-left')}Manage routes</button><h1>New route</h1><p class="sub">Name and code are required. Everything else helps patrollers on the ground.</p>
+ <label class="f" for="fn">Name</label><input id="fn" data-f="name" maxlength="100" value="${esc(f.name)}" placeholder="Downtown Core" class="${e.name?'bad':''}" aria-invalid="${!!e.name}">${e.name?`<div class="err">${e.name}</div>`:''}
+ <label class="f" for="fc">Code</label><input id="fc" data-f="code" maxlength="10" value="${esc(f.code)}" placeholder="DT-01" class="${e.code?'bad':''}" aria-invalid="${!!e.code}">${e.code?`<div class="err">${e.code}</div>`:'<div class="hint">Unique in your company, archived routes included. Not case-sensitive.</div>'}
+ <label class="f" for="fd">Description <span>(optional)</span></label><textarea id="fd" data-f="desc" placeholder="Streets and limits this loop covers">${esc(f.desc)}</textarea>
+ <label class="f" for="fa">Area type <span>(optional)</span></label><select id="fa" data-f="area"><option value="">Not set</option>${['Commercial','Mixed','Industrial','Residential'].map(o=>`<option ${f.area===o?'selected':''}>${o}</option>`).join('')}</select>
+ <label class="f" for="fs">Start point <span>(optional)</span></label><input id="fs" data-f="start" value="${esc(f.start)}" placeholder="Yonge & Queen">
+ <label class="f" for="ff">Focus <span>(optional)</span></label><input id="ff" data-f="focus" value="${esc(f.focus)}" placeholder="Illuminated storefronts">
+ <label class="f" for="fh">Hotspots <span>(optional)</span></label><div class="addrow"><input id="fh" placeholder="Intersection or plaza"><button class="btn" id="addh" aria-label="Add hotspot">${ic('plus')}</button></div>
+ <div class="chips">${A.hots.map((h,i)=>`<span class="chip">${esc(h)}<button data-rh="${i}" aria-label="Remove ${esc(h)}">${ic('x')}</button></span>`).join('')}</div>
+ <div class="r" style="margin-top:24px"><button class="btn" id="cx">Cancel</button><button class="btn pri" id="sv" ${A.busy?'disabled':''}>${A.busy?'<span class="spin"></span>Creating…':'Create route'}</button></div>`,
+ b(){$$('[data-f]').forEach(el=>el.oninput=el.onchange=ev=>f[el.dataset.f]=ev.target.value);
+  $('#bk').onclick=$('#cx').onclick=()=>go('admin');
+  const add=()=>{const v=$('#fh').value.trim();if(v){A.hots.push(v);render();$('#fh').focus()}};
+  $('#addh').onclick=add;$('#fh').onkeydown=ev=>{if(ev.key==='Enter'){ev.preventDefault();add()}};
+  $$('[data-rh]').forEach(b=>b.onclick=()=>{A.hots.splice(+b.dataset.rh,1);render()});
+  $('#sv').onclick=()=>{const n=f.name.trim(),c=f.code.trim(),er={};
+   if(!n)er.name='Enter a route name.';
+   if(!c)er.code='Enter a route code.';else if(ROUTES.some(r=>r.code.toLowerCase()===c.toLowerCase()))er.code=`${esc(c)} is already used by another route. Pick a different code.`;
+   A.errs=er;if(Object.keys(er).length){render();$(er.name?'#fn':'#fc').focus();return}
+   A.busy=true;render();setTimeout(()=>{A.busy=false;ROUTES.unshift({id:Date.now(),code:c,name:n,desc:f.desc.trim(),area:f.area,start:f.start.trim(),focus:f.focus.trim(),hot:[...A.hots],p:0,i:0,arch:null,last:null});A.tab='Active';go('admin');toast(`Created ${n}`)},700)}}}},
+adminHist(){
+ const A=S.a,r=ROUTES.find(x=>x.id===A.hist),all=adminSessions(r),N=all.length,a=A.page*10,rows=all.slice(a,a+10);
+ return{h:`<button class="back" id="bk">${ic('chevron-left')}Manage routes</button><div><span class="badge">${esc(r.code)}</span></div><h1>${esc(r.name)}</h1><p class="sub">Patrol history</p>
+ ${N?`<div class="tbl"><table><thead><tr><th>Date</th><th>Start</th><th>Patroller</th><th class="n">Duration (h:mm)</th><th class="n">Inspections</th><th class="n">Photos</th></tr></thead><tbody>
+ ${rows.map(s=>`<tr><td>${s.d.toLocaleDateString('en-CA',{month:'short',day:'numeric',year:'numeric'})}</td><td>${s.d.toLocaleTimeString('en-CA',{hour:'numeric',minute:'2-digit'})}</td><td>${s.who}</td><td class="n">${s.dur===null?'<span class="inprog">In progress</span>':hm(s.dur)}</td><td class="n">${s.ins}</td><td class="n">${s.ph}</td></tr>`).join('')}</tbody></table></div>
+ <div class="pager"><button class="btn sm" id="nw" ${A.page===0?'disabled':''}>Newer</button><span>${a+1}–${Math.min(a+10,N)} of ${N}</span><button class="btn sm" id="ol" ${a+10>=N?'disabled':''}>Older</button></div>`
+ :empty('footprints','No patrols yet','Patrols appear here once someone starts this route from the Routes list.')}`,
+ b(){$('#bk').onclick=()=>go('admin');$('#nw')?.addEventListener('click',()=>{A.page--;render()});$('#ol')?.addEventListener('click',()=>{A.page++;render()})}}},
+gate(){return{h:`<div class="empty" style="margin-top:24px"><div class="ei" style="background:var(--accs);color:var(--acc)">${ic('shield-alert')}</div><b>Admins only</b><p>Route management is limited to admin accounts. Ask an admin if a route needs changing.</p><button class="btn" id="toR">Back to routes</button></div>`,b(){$('#toR').onclick=()=>go('routes')}}}
+};
+
+function hdr(){const d=dark();
+ $('#hdr').innerHTML=`<div class="hrow"><div class="brand"><span class="logo">${ic('scan-eye')}</span>Patrol</div><div class="hr"><div class="seg sm" role="group" aria-label="Demo role">${['admin','patroller'].map(r=>`<button data-role="${r}" aria-pressed="${S.role===r}">${r[0].toUpperCase()+r.slice(1)}</button>`).join('')}</div><button class="ib" id="thm" aria-label="Switch to ${d?'day':'night'} mode">${ic(d?'sun':'moon')}</button></div></div>
+ ${S.sess?`<button class="live" id="tb"><span class="dot"></span><span class="lt">Patrolling ${esc(S.sess.route.code)}</span><b id="tv">${clock()}</b></button>`:''}`;
+ $$('[data-role]').forEach(b=>b.onclick=()=>{S.role=b.dataset.role;render()});
+ $('#thm').onclick=()=>{S.theme=dark()?'light':'dark';render()};
+ const tb=$('#tb');if(tb)tb.onclick=()=>{if(!FLOW.includes(S.screen))go('active')}}
+function nav(){const t=[['routes','map','Routes'],['active','footprints','Patrol'],['history','clock-3','History']];if(S.role==='admin')t.push(['admin','sliders-horizontal','Admin']);
+ const cur=S.screen.startsWith('admin')?'admin':S.screen;
+ $('#nav').innerHTML=`<div class="in">${t.map(([k,i,l])=>`<button data-nav="${k}" ${cur===k?'aria-current="page"':''}>${ic(i)}${l}${k==='active'&&S.sess?'<span class="pip"></span>':''}</button>`).join('')}</div>`;
+ $$('[data-nav]').forEach(b=>b.onclick=()=>go(b.dataset.nav))}
+function render(){
+ const root=document.documentElement;S.theme?root.setAttribute('data-theme',S.theme):root.removeAttribute('data-theme');
+ hdr();let key=S.screen;if(key.startsWith('admin')&&S.role!=='admin')key='gate';
+ const v=V[key]();$('#main').innerHTML=v.h;
+ const navOn=['routes','active','history','admin','adminNew','adminHist','gate'].includes(key);
+ $('#nav').hidden=!navOn;if(navOn)nav();
+ icons();v.b&&v.b();
+}
+setInterval(()=>{const e=$('#tv');if(e&&S.sess)e.textContent=clock()},1000);
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(!S.theme)render()});
+render();
+</script>
+</body>
+</html>

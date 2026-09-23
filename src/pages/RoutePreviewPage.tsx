@@ -1,26 +1,31 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { ArrowRight, ChevronLeft, MapPin, Play } from 'lucide-react';
 import { usePatrolStore } from '../store/patrol.store';
 import { usePatrolSession } from '../context/PatrolSessionContext';
 import { supabase } from '../lib/supabase';
-import { cls } from '../lib/ui';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import type { PatrolRoute } from '../types';
+import Screen from '../components/layout/Screen';
+import FlowFooter from '../components/flow/FlowFooter';
+import { LoadError } from '../components/ui/EmptyState';
 
 const RoutePreviewPage: React.FC = () => {
   const { routeId } = useParams<{ routeId: string }>();
   const navigate = useNavigate();
   const { currentUser, setActiveSession } = usePatrolStore();
-  const { startSession } = usePatrolSession();
+  const { startSession, sessionId: liveSessionId, routeId: liveRouteId, routeCode: liveRouteCode } = usePatrolSession();
 
-  const [route, setRoute] = useState<any | null>(null);
+  const [route, setRoute] = useState<PatrolRoute | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     if (!routeId) return;
     setLoading(true);
+    setError(null);
     supabase
       .from('patrol_routes')
       .select('*')
@@ -30,11 +35,11 @@ const RoutePreviewPage: React.FC = () => {
         if (err || !data) {
           setError('Route not found.');
         } else {
-          setRoute(data);
+          setRoute(data as PatrolRoute);
         }
         setLoading(false);
       });
-  }, [routeId]);
+  }, [routeId, reload]);
 
   const handleStartPatrol = async () => {
     if (!currentUser || !route) return;
@@ -58,103 +63,78 @@ const RoutePreviewPage: React.FC = () => {
       return;
     }
     setActiveSession(data.id, route.id);
-    startSession(data.id, route.id, route.name);
+    startSession(data.id, route.id, route.name, { routeCode: route.code, startedAt: data.started_at });
     navigate(`/patrol/${data.id}`);
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
-        <div className="text-[#8F8F8F] text-sm animate-pulse">Loading route…</div>
-      </div>
+      <Screen>
+        <div className="skeleton h-8 w-24 mt-4" />
+        <div className="skeleton h-10 mt-3" />
+        <div className="skeleton h-24 mt-4" />
+      </Screen>
     );
   }
 
   if (error || !route) {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] flex flex-col items-center justify-center gap-4">
-        <p className="text-[#8F8F8F]">{error ?? 'Route not found.'}</p>
-        <button onClick={() => navigate('/routes')} className="text-[#FCCA3B] text-sm underline">
-          Back to Routes
-        </button>
-      </div>
+      <Screen nav>
+        <button className="linkb -ml-1" onClick={() => navigate('/routes')}><ChevronLeft aria-hidden />Routes</button>
+        <LoadError message={error ?? 'Route not found.'} onRetry={() => setReload((n) => n + 1)} />
+      </Screen>
     );
   }
 
-  const badge = (route.code ?? route.name ?? '').slice(0, 2).toUpperCase();
+  const mine = liveSessionId !== null && liveRouteId === route.id;
+  const busyElsewhere = liveSessionId !== null && !mine;
+  const hotspots = Array.isArray(route.hotspots) ? route.hotspots : [];
 
   return (
-    <div className="bg-[#0A0A0A] min-h-screen pb-32">
-      {/* Back button */}
-      <button
-        onClick={() => navigate('/routes')}
-        className="flex items-center gap-1 text-[#8F8F8F] text-sm pt-12 px-5"
-      >
-        <ChevronLeft className="w-5 h-5" /> Routes
-      </button>
-
-      {/* Route badge pill */}
-      <span className="bg-[#FCCA3B] text-black font-black text-xs tracking-widest px-4 py-1.5 rounded-full inline-block mt-8 mx-5">
-        {badge}
-      </span>
-
-      {/* Title */}
-      <h1 className="px-5 text-4xl font-black text-white mt-3 leading-tight">{route.name}</h1>
-
-      {/* Description */}
-      {route.description && (
-        <p className="px-5 text-[#8F8F8F] text-sm mt-2 leading-relaxed">{route.description}</p>
-      )}
-
-      {/* Info cards row */}
-      <div className="flex gap-3 px-5 mt-6">
-        <div className="flex-1 bg-[#1C1C1E] border border-[#2A2A2A] rounded-2xl p-4">
-          <p className="text-[#8F8F8F] text-xs tracking-widest uppercase mb-1">Area</p>
-          <p className="text-white font-semibold text-sm">{route.area_type || '—'}</p>
-        </div>
-        <div className="flex-1 bg-[#1C1C1E] border border-[#2A2A2A] rounded-2xl p-4">
-          <p className="text-[#8F8F8F] text-xs tracking-widest uppercase mb-1">Focus</p>
-          <p className="text-white font-semibold text-sm">{route.focus || '—'}</p>
-        </div>
-        <div className="flex-1 bg-[#1C1C1E] border border-[#2A2A2A] rounded-2xl p-4">
-          <p className="text-[#8F8F8F] text-xs tracking-widest uppercase mb-1">Start</p>
-          <p className="text-white font-semibold text-sm truncate">{route.start_point || '—'}</p>
-        </div>
-      </div>
-
-      {/* Hotspots */}
-      {Array.isArray(route.hotspots) && route.hotspots.length > 0 && (
-        <div className="mt-6 mx-5 bg-[#1C1C1E] border border-[#2A2A2A] rounded-2xl p-4">
-          <p className="text-[#8F8F8F] text-xs tracking-widest uppercase mb-3">Hotspots</p>
-          <div className="space-y-2">
-            {route.hotspots.map((spot: string, i: number) => (
-              <div key={i} className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#FCCA3B] flex-shrink-0" />
-                <span className="text-white text-sm">{spot}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {startError && (
-        <p className="text-red-500 text-sm mt-4 px-5">{startError}</p>
-      )}
-
-      {/* Start Patrol button */}
-      <div className="fixed bottom-6 left-5 right-5">
-        <button
-          onClick={handleStartPatrol}
-          disabled={starting}
-          className={cls.btnPrimary}
+    <Screen
+      footer={
+        <FlowFooter
+          hint={busyElsewhere ? `You're patrolling ${liveRouteCode ?? 'another route'} right now. End that patrol first.` : startError}
         >
-          {starting
-            ? 'Starting…'
-            : <span className="flex items-center justify-center gap-1.5">Start Patrol <ChevronRight className="w-5 h-5" /></span>
-          }
-        </button>
+          <button
+            className="btn btn-pri btn-xl btn-full"
+            disabled={busyElsewhere || starting}
+            onClick={mine ? () => navigate(`/patrol/${liveSessionId}`) : handleStartPatrol}
+          >
+            {starting ? <><span className="spin" aria-hidden />Starting…</>
+              : mine ? <><ArrowRight aria-hidden />Back to patrol</>
+              : <><Play aria-hidden />Start patrol</>}
+          </button>
+        </FlowFooter>
+      }
+    >
+      <button className="linkb -ml-1" onClick={() => navigate('/routes')}><ChevronLeft aria-hidden />Routes</button>
+      <div><span className="badge">{route.code}</span></div>
+      <h1>{route.name}</h1>
+      {route.description && <p className="sub">{route.description}</p>}
+
+      <div className="grid grid-cols-1 min-[381px]:grid-cols-3 gap-2 my-4">
+        {([['Start point', route.start_point], ['Area', route.area_type], ['Focus', route.focus]] as const).map(([k, v]) => (
+          <div key={k} className="bg-sf border border-line rounded-[14px] px-3 py-2.5">
+            <small className="block text-mut text-[13px]">{k}</small>
+            <b className={`text-sm ${k === 'Area' ? 'capitalize' : ''}`}>{v || 'Not set'}</b>
+          </div>
+        ))}
       </div>
-    </div>
+
+      <h2 className="section-title">Hotspots</h2>
+      {hotspots.length > 0 ? (
+        <ul className="list-none p-0 m-0 grid gap-2">
+          {hotspots.map((spot, i) => (
+            <li key={`${spot}-${i}`} className="flex gap-2.5 items-center bg-sf border border-line rounded-[14px] px-3.5 py-3 font-bold">
+              <MapPin className="w-5 h-5 text-acc flex-none" aria-hidden />{spot}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="sub">No hotspots on this route. Log any sign you spot along the way.</p>
+      )}
+    </Screen>
   );
 };
 

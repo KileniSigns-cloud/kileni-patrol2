@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { cls } from '../lib/ui';
+import {
+  AppWindow, Landmark, LayoutPanelTop, Milestone, Monitor, RectangleHorizontal, Shapes, Signpost, Sparkles, Square, Type,
+  type LucideIcon,
+} from 'lucide-react';
 import { usePatrolSession } from '../context/PatrolSessionContext';
-import TimerBar from '../components/layout/TimerBar';
 import { skipsPatrolType } from '../lib/signFlow';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import Screen from '../components/layout/Screen';
+import StepProgress from '../components/flow/StepProgress';
+import FlowFooter, { FooterRow } from '../components/flow/FlowFooter';
+import NoSession from '../components/flow/NoSession';
 
 type Category = 'Illuminated' | 'Non-Illuminated';
 
@@ -27,7 +32,25 @@ const SIGN_TYPES: Record<Category, string[]> = {
   ],
 };
 
-const CATEGORIES: Category[] = ['Illuminated', 'Non-Illuminated'];
+const CATEGORIES: { value: Category; label: string }[] = [
+  { value: 'Illuminated', label: 'Illuminated' },
+  { value: 'Non-Illuminated', label: 'Non illuminated' },
+];
+
+const ICONS: Record<string, LucideIcon> = {
+  'Channel Letters': Type,
+  'LED Cabinet / Sign Box': Square,
+  'Monument Signs': Landmark,
+  'Digital & Electronic Displays': Monitor,
+  'Specialty Illuminated': Sparkles,
+  'Flat Cut Letters': Type,
+  'ACP Panel Signs': RectangleHorizontal,
+  'Pylon / Pole Signs': Milestone,
+  'Wayfinding / Directional': Signpost,
+  'Window Graphics': AppWindow,
+};
+
+const ADVANCE_MS = 200;
 
 const SignTypePage: React.FC = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -37,16 +60,9 @@ const SignTypePage: React.FC = () => {
   const [category, setCategory] = useState<Category | null>(ctxSignCategory as Category | null);
   const [signType, setSignTypeState] = useState<string | null>(ctxSignType);
 
-  if (!activeSessionId) {
-    return (
-      <div className={`${cls.page} items-center justify-center gap-4 px-6`}>
-        <p className={cls.muted}>No active patrol session.</p>
-        <button onClick={() => navigate('/routes')} className="text-yellow-500 text-sm underline">
-          Back to Routes
-        </button>
-      </div>
-    );
-  }
+  if (!activeSessionId) return <NoSession />;
+
+  const next = () => navigate(`/issues/${sessionId}`);
 
   const handleCategorySelect = (cat: Category) => {
     setCategory(cat);
@@ -58,87 +74,51 @@ const SignTypePage: React.FC = () => {
     setSignTypeState(type);
     setSignCategory(category!);
     setSignType(type);
+    setTimeout(next, ADVANCE_MS);
   };
 
+  const hint = !category ? 'Pick lighting first.' : !signType ? 'Pick the closest sign type.' : null;
+
   return (
-    <div className={cls.page}>
-      <TimerBar showBack={false} showCancel={false} />
+    <Screen
+      footer={
+        <FlowFooter hint={hint}>
+          <FooterRow>
+            <button
+              className="btn"
+              onClick={() => navigate(skipsPatrolType({ reusingBusiness, patrolType }) ? `/photos/${sessionId}` : `/patrol-type/${sessionId}`)}
+            >
+              Back
+            </button>
+            <button className="btn btn-pri" onClick={next} disabled={!category || !signType}>Next: issues</button>
+          </FooterRow>
+        </FlowFooter>
+      }
+    >
+      <StepProgress step={3} />
+      <h1>Sign type</h1>
+      <p className="sub">Pick lighting first, then the closest match.</p>
 
-      {/* Top bar */}
-      <div className="pt-16 px-5 flex justify-between items-center">
-        <button
-          onClick={() => navigate(skipsPatrolType({ reusingBusiness, patrolType }) ? `/photos/${sessionId}` : `/patrol-type/${sessionId}`)}
-          className="flex items-center gap-1 text-[#8F8F8F] text-sm"
-        >
-          <ChevronLeft className="w-5 h-5" /> Back
-        </button>
-        <span className="text-xs font-semibold text-[#8F8F8F]">7 OF 9</span>
+      <div className="seg" role="group" aria-label="Lighting">
+        {CATEGORIES.map(({ value, label }) => (
+          <button key={value} aria-pressed={category === value} onClick={() => handleCategorySelect(value)}>{label}</button>
+        ))}
       </div>
 
-      {/* Page header */}
-      <div className="px-5 mt-6 pb-5">
-        <p className="text-xs tracking-widest text-[#FCCA3B] uppercase">SIGN IDENTIFICATION</p>
-        <h1 className="font-black text-3xl text-white mt-1">Sign Type</h1>
-      </div>
-
-      <div className="flex-1 px-5 overflow-y-auto pb-32">
-
-        {/* Category toggle pills */}
-        <div className="flex rounded-2xl overflow-hidden">
-          {CATEGORIES.map(cat => {
-            const isSelected = category === cat;
+      {category && (
+        <div className="grid grid-cols-2 gap-2.5 mt-3">
+          {SIGN_TYPES[category].map((type) => {
+            const Icon = ICONS[type] ?? (type === 'Other' ? Shapes : LayoutPanelTop);
             return (
-              <button
-                key={cat}
-                onClick={() => handleCategorySelect(cat)}
-                className={[
-                  'flex-1 py-3 text-sm font-bold transition-colors',
-                  isSelected
-                    ? 'bg-[#FCCA3B] text-black'
-                    : 'bg-[#1C1C1E] text-[#8F8F8F]',
-                ].join(' ')}
-              >
-                {cat === 'Illuminated' ? 'ILLUMINATED' : 'NON-ILLUMINATED'}
+              <button key={type} className="tile tile-col" aria-pressed={signType === type} onClick={() => handleTypeSelect(type)}>
+                <span className="icon-tile"><Icon aria-hidden /></span>
+                <b>{type}</b>
               </button>
             );
           })}
         </div>
-
-        {/* Sign type grid */}
-        {category && (
-          <div className="grid grid-cols-2 gap-3 mt-4">
-            {SIGN_TYPES[category].map(type => {
-              const isSelected = signType === type;
-              return (
-                <button
-                  key={type}
-                  onClick={() => handleTypeSelect(type)}
-                  className={[
-                    'bg-[#1C1C1E] rounded-2xl p-4 text-center transition-all active:scale-[0.97]',
-                    isSelected
-                      ? 'border border-[#FCCA3B] text-white'
-                      : 'border border-[#2A2A2A] text-[#8F8F8F]',
-                  ].join(' ')}
-                >
-                  <span className="font-semibold text-sm leading-snug">{type}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Bottom action */}
-      <div className={cls.bottomBar}>
-        <button
-          onClick={() => navigate(`/issues/${sessionId}`)}
-          disabled={!category || !signType}
-          className={cls.btnPrimary}
-        >
-          <span className="flex items-center justify-center gap-1.5">Continue <ChevronRight className="w-5 h-5" /></span>
-        </button>
-      </div>
-    </div>
+      )}
+    </Screen>
   );
 };
 

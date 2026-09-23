@@ -5,20 +5,22 @@ interface ConfirmDialogProps {
   title: string;
   message: string;
   confirmLabel: string;
+  /** Red confirm button for destructive actions (end patrol, discard, remove, archive). */
+  danger?: boolean;
   busy?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
-/** Centred modal (80vw, capped) over a dimmed overlay. Esc, overlay tap and Cancel all dismiss. */
+/** Bottom sheet on phones, centred dialog from 600px. Esc, overlay tap and Cancel all dismiss. */
 const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
-  open, title, message, confirmLabel, busy = false, onConfirm, onCancel,
+  open, title, message, confirmLabel, danger = false, busy = false, onConfirm, onCancel,
 }) => {
   const cancelRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) return;
-    cancelRef.current?.focus();
+    cancelRef.current?.focus(); // safest default for a destructive choice
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !busy) onCancel(); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -27,32 +29,23 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70" onClick={() => !busy && onCancel()} aria-hidden />
+    <div
+      className="fixed inset-0 z-20 flex items-end justify-center min-[600px]:items-center p-4 bg-black/60"
+      onClick={(e) => { if (e.target === e.currentTarget && !busy) onCancel(); }}
+    >
       <div
         role="alertdialog"
         aria-modal="true"
         aria-labelledby="confirm-title"
         aria-describedby="confirm-message"
-        className="relative w-[80vw] max-w-md bg-[#1C1C1E] border border-[#2A2A2A] rounded-2xl p-6 shadow-2xl"
+        className="w-full max-w-[440px] bg-sf rounded-[22px] p-[22px] shadow-[0_20px_60px_rgba(0,0,0,.3)]"
       >
-        <h2 id="confirm-title" className="text-lg font-black text-white">{title}</h2>
-        <p id="confirm-message" className="mt-2 text-sm text-[#8F8F8F] leading-relaxed">{message}</p>
-        <div className="mt-6 flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
-          <button
-            ref={cancelRef}
-            onClick={onCancel}
-            disabled={busy}
-            className="min-h-12 px-5 rounded-xl border border-[#2A2A2A] text-white font-semibold hover:border-[#8F8F8F] disabled:opacity-50 transition-colors active:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#FCCA3B]"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            disabled={busy}
-            className="min-h-12 px-5 rounded-xl bg-[#FCCA3B] text-black font-black hover:brightness-110 disabled:opacity-60 transition active:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FCCA3B]"
-          >
-            {busy ? 'Working…' : confirmLabel}
+        <h2 id="confirm-title" className="m-0 text-xl font-extrabold">{title}</h2>
+        <p id="confirm-message" className="text-mut mt-2 mb-5">{message}</p>
+        <div className="flex gap-2.5">
+          <button ref={cancelRef} className="btn flex-1" onClick={onCancel} disabled={busy}>Cancel</button>
+          <button className={`btn flex-[2] ${danger ? 'btn-danger' : 'btn-pri'}`} onClick={onConfirm} disabled={busy}>
+            {busy ? <><span className="spin" aria-hidden />Working…</> : confirmLabel}
           </button>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { CheckCircle2, AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, X } from 'lucide-react';
 
 type ToastKind = 'success' | 'error';
 
@@ -33,13 +33,14 @@ export const toast = {
   error: (message: string) => useToastStore.getState().show('error', message),
 };
 
-/** Mounted once in App. Top-right on wide screens, full-width at the top on phones. */
+/** Mounted once in App. Top right, closes after 3 s. */
 export const Toaster: React.FC = () => {
   const { toasts, dismiss } = useToastStore();
   return (
     <div
       aria-live="polite"
-      className="fixed top-[max(1rem,env(safe-area-inset-top))] left-4 right-4 sm:left-auto sm:w-96 z-[100] flex flex-col gap-2 pointer-events-none"
+      className="fixed right-3 z-30 flex flex-col items-end gap-2 pointer-events-none max-w-[calc(100%-24px)]"
+      style={{ top: 'calc(12px + env(safe-area-inset-top, 0px))' }}
     >
       {toasts.map((t) => {
         const ok = t.kind === 'success';
@@ -48,16 +49,14 @@ export const Toaster: React.FC = () => {
           <div
             key={t.id}
             role={ok ? 'status' : 'alert'}
-            className={`pointer-events-auto flex items-start gap-3 rounded-2xl border px-4 py-3 shadow-xl bg-[#1C1C1E] ${
-              ok ? 'border-emerald-500/40' : 'border-red-500/50'
-            }`}
+            className="pointer-events-auto flex items-center gap-2 rounded-[14px] pl-4 pr-1 py-1 font-bold bg-tx text-bg shadow-[0_10px_30px_rgba(0,0,0,.25)]"
           >
-            <Icon className={`w-5 h-5 mt-0.5 flex-shrink-0 ${ok ? 'text-emerald-400' : 'text-red-400'}`} aria-hidden />
-            <p className="flex-1 text-sm text-white leading-snug">{t.message}</p>
+            <Icon className={`w-[18px] h-[18px] flex-none ${ok ? 'text-ok' : 'text-acc'}`} aria-hidden />
+            <span className="py-2">{t.message}</span>
             <button
               onClick={() => dismiss(t.id)}
-              aria-label="Dismiss notification"
-              className="-m-2 w-12 h-12 flex items-center justify-center rounded-full text-[#8F8F8F] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#FCCA3B]"
+              aria-label="Dismiss"
+              className="w-12 h-12 grid place-items-center rounded-full border-0 bg-transparent text-bg cursor-pointer"
             >
               <X className="w-4 h-4" aria-hidden />
             </button>

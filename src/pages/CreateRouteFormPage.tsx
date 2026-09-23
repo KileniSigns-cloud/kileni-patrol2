@@ -7,12 +7,10 @@ import {
   AREA_TYPES, EMPTY_ROUTE_FORM, NAME_MAX, addHotspot, validateRouteForm,
   type RouteFormErrors, type RouteFormValues,
 } from '../lib/routeForm';
+import { errorMessage } from '../lib/errors';
+import Screen from '../components/layout/Screen';
 import AdminHeader from '../components/admin/AdminHeader';
 import { toast } from '../components/ui/Toast';
-
-const focusRing = 'active:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FCCA3B]';
-const inputBase = 'w-full min-h-12 px-4 py-3 rounded-xl bg-[#1C1C1E] border text-base text-white placeholder-[#8F8F8F] outline-none transition-colors focus:border-[#FCCA3B]';
-const inputCls = (hasError: boolean) => `${inputBase} ${hasError ? 'border-red-500' : 'border-[#2A2A2A]'}`;
 
 const CreateRouteFormPage: React.FC = () => {
   const navigate = useNavigate();
@@ -52,188 +50,170 @@ const CreateRouteFormPage: React.FC = () => {
     setSubmitting(true);
     try {
       const route = await createRoute(final);
-      toast.success(`Route "${route.name}" created.`);
+      toast.success(`Created ${route.name}`);
       navigate('/admin/routes', { replace: true });
     } catch (err) {
       if (err instanceof DuplicateCodeError) {
         setErrors({ code: err.message });
         fieldRefs.current.code?.focus();
       } else {
-        setFormError(err instanceof Error ? err.message : 'Could not create route.');
+        setFormError(errorMessage(err, 'Could not create route.'));
       }
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] pb-12">
-      <div className="max-w-xl mx-auto">
-        <AdminHeader eyebrow="Admin · Routes" title="Create route" backTo="/admin/routes" />
+    <Screen nav>
+      <AdminHeader
+        back={{ to: '/admin/routes', label: 'Manage routes' }}
+        title="New route"
+        sub="Name and code are required. Everything else helps patrollers on the ground."
+      />
 
-        <form onSubmit={onSubmit} noValidate className="px-4 sm:px-6 flex flex-col gap-5">
-          {formError && (
-            <div role="alert" className="rounded-xl border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm text-red-400">
-              {formError}
-            </div>
-          )}
-
-          <Field label="Name" required error={errors.name} hint={`${values.name.trim().length}/${NAME_MAX}`}>
-            {(id, describedBy) => (
-              <input
-                id={id}
-                ref={(el) => { fieldRefs.current.name = el; }}
-                value={values.name}
-                onChange={(e) => set('name', e.target.value)}
-                maxLength={NAME_MAX + 20}
-                autoComplete="off"
-                aria-invalid={!!errors.name}
-                aria-describedby={describedBy}
-                placeholder="e.g. Downtown Core"
-                className={inputCls(!!errors.name)}
-              />
-            )}
-          </Field>
-
-          <Field label="Code" required error={errors.code} hint="Short unique code, e.g. DT-01. No spaces.">
-            {(id, describedBy) => (
-              <input
-                id={id}
-                ref={(el) => { fieldRefs.current.code = el; }}
-                value={values.code}
-                onChange={(e) => set('code', e.target.value)}
-                autoComplete="off"
-                autoCapitalize="characters"
-                aria-invalid={!!errors.code}
-                aria-describedby={describedBy}
-                placeholder="DT-01"
-                className={`${inputCls(!!errors.code)} font-mono`}
-              />
-            )}
-          </Field>
-
-          <Field label="Description" error={errors.description}>
-            {(id, describedBy) => (
-              <textarea
-                id={id}
-                rows={3}
-                value={values.description}
-                onChange={(e) => set('description', e.target.value)}
-                aria-describedby={describedBy}
-                className={`${inputCls(false)} resize-y`}
-              />
-            )}
-          </Field>
-
-          <Field label="Area type" error={errors.area_type}>
-            {(id, describedBy) => (
-              <select
-                id={id}
-                ref={(el) => { fieldRefs.current.area_type = el; }}
-                value={values.area_type}
-                onChange={(e) => set('area_type', e.target.value as RouteFormValues['area_type'])}
-                aria-invalid={!!errors.area_type}
-                aria-describedby={describedBy}
-                className={`${inputCls(!!errors.area_type)} appearance-none capitalize`}
-              >
-                <option value="">Not set</option>
-                {AREA_TYPES.map((t) => <option key={t} value={t}>{t[0].toUpperCase() + t.slice(1)}</option>)}
-              </select>
-            )}
-          </Field>
-
-          <Field label="Focus" hint="Priority for patrollers on this route.">
-            {(id, describedBy) => (
-              <input
-                id={id}
-                value={values.focus}
-                onChange={(e) => set('focus', e.target.value)}
-                aria-describedby={describedBy}
-                placeholder="e.g. Plazas along Main St"
-                className={inputCls(false)}
-              />
-            )}
-          </Field>
-
-          <Field label="Start point" hint="Address where the patrol begins.">
-            {(id, describedBy) => (
-              <input
-                id={id}
-                value={values.start_point}
-                onChange={(e) => set('start_point', e.target.value)}
-                aria-describedby={describedBy}
-                autoComplete="street-address"
-                className={inputCls(false)}
-              />
-            )}
-          </Field>
-
-          <Field label="Hotspots" hint="Add each hotspot, then tap Add or press Enter.">
-            {(id, describedBy) => (
-              <div className="flex flex-col gap-3">
-                <div className="flex gap-2">
-                  <input
-                    id={id}
-                    value={hotspotDraft}
-                    onChange={(e) => setHotspotDraft(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commitHotspot(); } }}
-                    aria-describedby={describedBy}
-                    placeholder="e.g. Yonge & Bloor"
-                    className={inputCls(false)}
-                  />
-                  <button
-                    type="button"
-                    onClick={commitHotspot}
-                    disabled={!hotspotDraft.trim()}
-                    className={`min-h-12 px-4 flex-shrink-0 inline-flex items-center gap-1 rounded-xl border border-[#2A2A2A] text-white font-semibold disabled:opacity-40 hover:border-[#8F8F8F] transition-colors ${focusRing}`}
-                  >
-                    <Plus className="w-4 h-4" aria-hidden /> Add
-                  </button>
-                </div>
-                {values.hotspots.length > 0 && (
-                  <ul className="flex flex-wrap gap-2" aria-label="Hotspots added">
-                    {values.hotspots.map((h) => (
-                      <li key={h} className="inline-flex items-center gap-1 pl-3 rounded-full border border-[#2A2A2A] bg-[#1C1C1E] text-sm text-white">
-                        {h}
-                        <button
-                          type="button"
-                          onClick={() => set('hotspots', values.hotspots.filter((x) => x !== h))}
-                          aria-label={`Remove hotspot ${h}`}
-                          className={`w-12 h-12 inline-flex items-center justify-center rounded-full text-[#8F8F8F] hover:text-white ${focusRing}`}
-                        >
-                          <X className="w-4 h-4" aria-hidden />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
-          </Field>
-
-          <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => navigate('/admin/routes')}
-              disabled={submitting}
-              className={`min-h-12 px-5 rounded-xl border border-[#2A2A2A] text-white font-semibold hover:border-[#8F8F8F] disabled:opacity-50 transition-colors sm:flex-1 ${focusRing}`}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className={`min-h-12 px-5 rounded-xl bg-[#FCCA3B] text-black font-black hover:brightness-110 disabled:opacity-60 transition sm:flex-[2] ${focusRing}`}
-            >
-              {submitting ? 'Creating…' : 'Create route'}
-            </button>
+      <form onSubmit={onSubmit} noValidate>
+        {formError && (
+          <div role="alert" className="rounded-[14px] border border-acc bg-accs px-4 py-3 text-sm font-bold text-acc">
+            {formError}
           </div>
-        </form>
-      </div>
-    </div>
+        )}
+
+        <Field label="Name" required error={errors.name} hint={`${values.name.trim().length}/${NAME_MAX}`}>
+          {(id, describedBy) => (
+            <input
+              id={id}
+              ref={(el) => { fieldRefs.current.name = el; }}
+              className={`input ${errors.name ? 'input-bad' : ''}`}
+              value={values.name}
+              onChange={(e) => set('name', e.target.value)}
+              maxLength={NAME_MAX + 20}
+              autoComplete="off"
+              aria-invalid={!!errors.name}
+              aria-describedby={describedBy}
+              placeholder="Downtown Core"
+            />
+          )}
+        </Field>
+
+        <Field label="Code" required error={errors.code} hint="Unique in your company, archived routes included. Not case-sensitive. No spaces.">
+          {(id, describedBy) => (
+            <input
+              id={id}
+              ref={(el) => { fieldRefs.current.code = el; }}
+              className={`input ${errors.code ? 'input-bad' : ''}`}
+              value={values.code}
+              onChange={(e) => set('code', e.target.value)}
+              autoComplete="off"
+              autoCapitalize="characters"
+              aria-invalid={!!errors.code}
+              aria-describedby={describedBy}
+              placeholder="DT-01"
+            />
+          )}
+        </Field>
+
+        <Field label="Description" error={errors.description}>
+          {(id, describedBy) => (
+            <textarea
+              id={id}
+              className="input"
+              value={values.description}
+              onChange={(e) => set('description', e.target.value)}
+              aria-describedby={describedBy}
+              placeholder="Streets and limits this loop covers"
+            />
+          )}
+        </Field>
+
+        <Field label="Area type" error={errors.area_type}>
+          {(id, describedBy) => (
+            <select
+              id={id}
+              ref={(el) => { fieldRefs.current.area_type = el; }}
+              className={`input ${errors.area_type ? 'input-bad' : ''}`}
+              value={values.area_type}
+              onChange={(e) => set('area_type', e.target.value as RouteFormValues['area_type'])}
+              aria-invalid={!!errors.area_type}
+              aria-describedby={describedBy}
+            >
+              <option value="">Not set</option>
+              {AREA_TYPES.map((t) => <option key={t} value={t}>{t[0].toUpperCase() + t.slice(1)}</option>)}
+            </select>
+          )}
+        </Field>
+
+        <Field label="Start point">
+          {(id, describedBy) => (
+            <input
+              id={id}
+              className="input"
+              value={values.start_point}
+              onChange={(e) => set('start_point', e.target.value)}
+              aria-describedby={describedBy}
+              autoComplete="street-address"
+              placeholder="Yonge & Queen"
+            />
+          )}
+        </Field>
+
+        <Field label="Focus">
+          {(id, describedBy) => (
+            <input
+              id={id}
+              className="input"
+              value={values.focus}
+              onChange={(e) => set('focus', e.target.value)}
+              aria-describedby={describedBy}
+              placeholder="Illuminated storefronts"
+            />
+          )}
+        </Field>
+
+        <Field label="Hotspots" hint="Add each hotspot, then tap + or press Enter.">
+          {(id, describedBy) => (
+            <>
+              <div className="flex gap-2">
+                <input
+                  id={id}
+                  className="input flex-1"
+                  value={hotspotDraft}
+                  onChange={(e) => setHotspotDraft(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); commitHotspot(); } }}
+                  aria-describedby={describedBy}
+                  placeholder="Intersection or plaza"
+                />
+                <button type="button" className="btn w-[52px] px-0" onClick={commitHotspot} disabled={!hotspotDraft.trim()} aria-label="Add hotspot">
+                  <Plus aria-hidden />
+                </button>
+              </div>
+              {values.hotspots.length > 0 && (
+                <ul className="flex flex-wrap gap-2 mt-2.5 list-none p-0" aria-label="Hotspots added">
+                  {values.hotspots.map((h) => (
+                    <li key={h} className="chip">
+                      {h}
+                      <button type="button" onClick={() => set('hotspots', values.hotspots.filter((x) => x !== h))} aria-label={`Remove ${h}`}>
+                        <X aria-hidden />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          )}
+        </Field>
+
+        <div className="flex gap-2.5 mt-6">
+          <button type="button" className="btn flex-1" onClick={() => navigate('/admin/routes')} disabled={submitting}>Cancel</button>
+          <button type="submit" className="btn btn-pri flex-[2]" disabled={submitting}>
+            {submitting ? <><span className="spin" aria-hidden />Creating…</> : 'Create route'}
+          </button>
+        </div>
+      </form>
+    </Screen>
   );
 };
 
-/** Label above the control, hint below, and the error (red, announced) under that. */
+/** Label above the control, then the error (announced) or the hint below it. */
 const Field: React.FC<{
   label: string;
   required?: boolean;
@@ -244,16 +224,16 @@ const Field: React.FC<{
   const id = useId();
   const hintId = hint ? `${id}-hint` : undefined;
   const errorId = error ? `${id}-error` : undefined;
-  const describedBy = [hintId, errorId].filter(Boolean).join(' ') || undefined;
+  const describedBy = [errorId, hintId].filter(Boolean).join(' ') || undefined;
   return (
-    <div className="flex flex-col gap-2">
-      <label htmlFor={id} className="text-sm font-semibold text-white">
+    <div>
+      <label htmlFor={id} className="field-label">
         {label}
-        {required ? <span className="text-red-400" aria-hidden> *</span> : <span className="text-[#8F8F8F] font-normal"> (optional)</span>}
+        {required ? <span className="sr-only"> (required)</span> : <span> (optional)</span>}
       </label>
       {children(id, describedBy)}
-      {hint && <p id={hintId} className="text-xs text-[#8F8F8F]">{hint}</p>}
-      {error && <p id={errorId} role="alert" className="text-sm text-red-400">{error}</p>}
+      {error && <div id={errorId} role="alert" className="field-err">{error}</div>}
+      {hint && <div id={hintId} className="field-hint">{hint}</div>}
     </div>
   );
 };

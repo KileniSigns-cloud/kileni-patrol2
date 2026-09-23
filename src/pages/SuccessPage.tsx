@@ -1,8 +1,12 @@
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { cls } from '../lib/ui';
+import { Camera, Check } from 'lucide-react';
 import { usePatrolSession } from '../context/PatrolSessionContext';
-import TimerBar from '../components/layout/TimerBar';
+import Screen from '../components/layout/Screen';
+import FlowFooter from '../components/flow/FlowFooter';
+import NoSession from '../components/flow/NoSession';
+
+const PATROL_TYPE_LABEL: Record<string, string> = { day: 'Day', night: 'Night' };
 
 const SuccessPage: React.FC = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -10,17 +14,17 @@ const SuccessPage: React.FC = () => {
   const ctx = usePatrolSession();
   const { resetForNextSign } = ctx;
 
-  const businessName = ctx.businessName  || 'Untagged Location';
-  const signCategory = ctx.signCategory  || '—';
-  const signType     = ctx.signType      || '—';
-  const issues       = ctx.currentIssues || [];
-  const issuesLabel  = issues.length > 0 ? issues.join(', ') : 'None found';
+  if (!ctx.sessionId) return <NoSession />;
 
-  const summaryRows = [
-    { label: 'Business', value: businessName },
-    { label: 'Category', value: signCategory },
-    { label: 'Type',     value: signType     },
-    { label: 'Issues',   value: issuesLabel  },
+  const issues = ctx.currentIssues || [];
+  const photos = (ctx.signPhotoUrls?.length ?? 0) + (ctx.surroundingPhotoUrls?.length ?? 0);
+
+  const summaryRows: [string, string][] = [
+    ['Business', ctx.businessName || 'Unnamed business'],
+    ['Sign', [ctx.signCategory, ctx.signType].filter(Boolean).join(', ') || '—'],
+    ['Patrol type', ctx.patrolType ? PATROL_TYPE_LABEL[ctx.patrolType] : '—'],
+    ['Photos', String(photos)],
+    ['Issues', issues.length > 0 ? issues.join(', ') : 'None'],
   ];
 
   const handleLogAnother = () => {
@@ -29,59 +33,33 @@ const SuccessPage: React.FC = () => {
   };
 
   return (
-    <div className={cls.page}>
-      <TimerBar showBack={false} showCancel={false} />
-
-      <div className="flex-1 flex flex-col items-center justify-center min-h-screen px-6">
-        {/* Checkmark circle */}
-        <div className="w-20 h-20 rounded-full border-2 border-[#FCCA3B] flex items-center justify-center mx-auto mt-16">
-          <span className="text-[#FCCA3B] text-4xl font-black leading-none">✓</span>
-        </div>
-
-        {/* Heading */}
-        <h1 className="text-3xl font-black text-white text-center mt-5">Inspection Logged</h1>
-
-        {/* CRM status */}
-        <p className="text-[#8F8F8F] text-sm text-center mt-2">
-          <span className="inline-block w-2 h-2 bg-emerald-400 rounded-full mr-2 align-middle" />
-          Added to BUILT CRM
-        </p>
-
-        {/* Summary card */}
-        <div className="bg-[#1C1C1E] border border-[#2A2A2A] rounded-2xl p-5 mt-8 w-full max-w-sm">
-          {summaryRows.map((row, idx) => (
-            <div
-              key={row.label}
-              className={[
-                'flex justify-between items-center py-3',
-                idx < summaryRows.length - 1 ? 'border-b border-[#2A2A2A]' : '',
-              ].join(' ')}
-            >
-              <span className="text-[#8F8F8F] text-xs tracking-widest uppercase">{row.label}</span>
-              <span className="text-white font-semibold text-sm text-right max-w-[60%] truncate">{row.value}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Action buttons */}
-        <div className="mt-8 w-full max-w-sm space-y-3">
-          <button onClick={handleLogAnother} className={cls.btnPrimary}>
-            📸 Log Another Sign
+    <Screen
+      footer={
+        <FlowFooter>
+          <button className="btn btn-pri btn-xl btn-full" onClick={handleLogAnother}>
+            <Camera aria-hidden />Log another sign here
           </button>
-          <button
-            onClick={() => navigate(`/patrol/${sessionId}`)}
-            className={`${cls.btnGhost} w-full py-4 rounded-2xl text-base font-semibold`}
-          >
-            ✓ Done for Now
-          </button>
+          <button className="btn btn-lg btn-full" onClick={() => navigate(`/patrol/${sessionId}`)}>Done</button>
+        </FlowFooter>
+      }
+    >
+      <div className="text-center pt-5">
+        <div className="w-[88px] h-[88px] rounded-full bg-oks text-ok grid place-items-center mx-auto mb-3">
+          <Check className="w-12 h-12" aria-hidden />
         </div>
-
-        {/* Bottom note */}
-        <p className="text-[#8F8F8F] text-xs text-center mt-6">
-          Timer is still running. End patrol from the patrol screen.
-        </p>
+        <h1>Sign logged</h1>
+        <p className="sub">Saved to this patrol. The timer is still running.</p>
       </div>
-    </div>
+
+      <div className="card">
+        {summaryRows.map(([label, value]) => (
+          <div key={label} className="flex justify-between gap-3 py-2.5 border-b border-line last:border-b-0">
+            <span className="text-mut font-semibold">{label}</span>
+            <b className="text-right break-words min-w-0">{value}</b>
+          </div>
+        ))}
+      </div>
+    </Screen>
   );
 };
 

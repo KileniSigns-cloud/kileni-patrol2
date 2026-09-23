@@ -1,23 +1,24 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ChevronRight, Map as MapIcon, Search, SearchX, Zap } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { usePatrolStore } from '../store/patrol.store';
-import BottomNav from '../components/layout/BottomNav';
-import { ChevronRight } from 'lucide-react';
-
-const todayLabel = new Date().toLocaleDateString('en-US', {
-  weekday: 'long',
-  month: 'long',
-  day: 'numeric',
-});
+import { fetchLastPatrolled } from '../lib/patrolApi';
+import { getOrgId } from '../lib/routesApi';
+import { lastPatrolLabel } from '../lib/patrolHistory';
+import { errorMessage } from '../lib/errors';
+import type { PatrolRoute } from '../types';
+import Screen from '../components/layout/Screen';
+import EmptyState, { LoadError } from '../components/ui/EmptyState';
 
 const RoutesPage: React.FC = () => {
   const navigate = useNavigate();
-  const { logout } = usePatrolStore();
-  const [routes, setRoutes] = useState<any[]>([]);
+  const [routes, setRoutes] = useState<PatrolRoute[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  // route id -> last session start. Absent until loaded; if it fails, cards just omit it.
+  const [lastPatrol, setLastPatrol] = useState<Map<string, string | null> | null>(null);
+  const [lastPatrolError, setLastPatrolError] = useState<string | null>(null);
 
   const fetchRoutes = async () => {
     setLoading(true);
@@ -30,9 +31,9 @@ const RoutesPage: React.FC = () => {
         .is('archived_at', null)
         .order('name');
       if (error) throw error;
-      setRoutes(data || []);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load routes');
+      setRoutes((data || []) as PatrolRoute[]);
+    } catch (err) {
+      setError(errorMessage(err, 'Failed to load routes'));
     } finally {
       setLoading(false);
     }
@@ -40,102 +41,76 @@ const RoutesPage: React.FC = () => {
 
   useEffect(() => { fetchRoutes(); }, []);
 
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login', { replace: true });
+  useEffect(() => {
+    let live = true;
+    getOrgId()
+      .then(fetchLastPatrolled)
+      .then((m) => { if (live) setLastPatrol(m); })
+      .catch((e) => { if (live) setLastPatrolError(errorMessage(e, 'Last patrol dates are unavailable.')); });
+    return () => { live = false; };
+  }, []);
+
+  const q = search.trim().toLowerCase();
+  const visible = useMemo(
+    () => routes.filter((r) => `${r.name} ${r.code}`.toLowerCase().includes(q)),
+    [routes, q],
+  );
+  const now = Date.now();
+
+  const meta = (r: PatrolRoute) => {
+    const n = Array.isArray(r.hotspots) ? r.hotspots.length : 0;
+    const hot = `${n} hotspot${n === 1 ? '' : 's'}`;
+    return lastPatrol ? `${hot}, ${lastPatrolLabel(lastPatrol.get(r.id) ?? null, now)}` : hot;
   };
 
-  const q = search.toLowerCase();
-
   return (
-    <div className="min-h-screen bg-[#0A0A0A] pb-20">
+    <Screen nav>
+      <h1>Routes</h1>
+      <p className="sub">Pick a loop to start patrolling.</p>
 
-      {/* Header */}
-      <div className="relative px-5 pt-12 pb-6">
-        <p className="text-xs tracking-widest text-[#FCCA3B]">KILENI SIGNS</p>
-        <h1 className="text-4xl font-black text-white mt-1">Your Routes</h1>
-        <p className="text-sm text-[#8F8F8F] mt-1">{todayLabel}</p>
-        <button
-          onClick={handleLogout}
-          className="absolute top-12 right-5 border border-[#2A2A2A] rounded-full px-3 py-1 text-xs text-[#8F8F8F]"
-        >
-          Sign out
-        </button>
+      <div className="relative mb-4">
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-mut" aria-hidden />
+        <input
+          type="search"
+          className="input pl-11"
+          placeholder="Search by name or code"
+          aria-label="Search routes"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
 
-      {/* Search */}
-      <div className="mb-5 mx-5">
-        <div className="flex items-center gap-3 bg-[#1C1C1E] border border-[#2A2A2A] rounded-2xl px-4 py-3 focus-within:border-[#FCCA3B] transition-colors">
-          <span className="text-base leading-none flex-shrink-0">🔍</span>
-          <input
-            type="text"
-            placeholder="Search routes…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="flex-1 bg-transparent text-white text-sm placeholder-[#8F8F8F] outline-none"
-          />
-        </div>
-      </div>
-
-      {/* Content */}
       {loading ? (
-        <div className="space-y-3">
-          {[0, 1, 2].map(i => (
-            <div key={i} className="bg-[#1C1C1E] animate-pulse rounded-2xl h-20 mx-5" />
-          ))}
+        <div className="grid gap-2.5" aria-busy="true">
+          {[0, 1, 2].map((i) => <div key={i} className="skeleton h-[72px]" />)}
         </div>
       ) : error ? (
-        <div className="flex flex-col items-center mt-20 gap-3">
-          <p className="text-red-400 text-sm text-center px-5">{error}</p>
-          <button onClick={fetchRoutes} className="text-[#FCCA3B] text-sm underline">
-            Retry
-          </button>
+        <LoadError message={error} onRetry={fetchRoutes} />
+      ) : visible.length > 0 ? (
+        <div className="grid gap-2.5">
+          {lastPatrolError && <p className="field-hint mt-0" role="status">Last patrol dates unavailable: {lastPatrolError}</p>}
+          {visible.map((r) => (
+            <button key={r.id} className="rowcard" onClick={() => navigate(`/route/${r.id}`)}>
+              <span className="badge">{r.code}</span>
+              <span className="flex-1 min-w-0 flex flex-col">
+                <span className="row-name">{r.name}</span>
+                <span className="row-meta">{meta(r)}</span>
+              </span>
+              <ChevronRight className="w-5 h-5 text-mut flex-none" aria-hidden />
+            </button>
+          ))}
         </div>
-      ) : (routes || []).length === 0 ? (
-        <div className="flex flex-col items-center mt-20">
-          <span className="text-4xl">📍</span>
-          <p className="text-white font-bold mt-4">No routes found</p>
-          <p className="text-[#8F8F8F] text-sm mt-2">Contact your administrator</p>
-        </div>
+      ) : q ? (
+        <EmptyState icon={SearchX} title="No routes match" body={`Nothing matches "${search.trim()}". Try a code like DT-01.`} />
       ) : (
-        <div className="space-y-3">
-          {(routes || [])
-            .filter(r =>
-              r.name.toLowerCase().includes(q) ||
-              r.code.toLowerCase().includes(q)
-            )
-            .map(route => {
-              const badge = (route.code ?? route.name ?? '').slice(0, 2).toUpperCase();
-              return (
-                <button
-                  key={route.id}
-                  onClick={() => navigate(`/route/${route.id}`)}
-                  className="w-full bg-[#1C1C1E] border border-[#2A2A2A] rounded-2xl p-5 flex items-center gap-4 mx-5 hover:bg-[#242424] active:scale-[0.98] transition-all"
-                  style={{ width: 'calc(100% - 2.5rem)' }}
-                >
-                  {/* Badge */}
-                  <div className="bg-[#FCCA3B] rounded-xl w-12 h-12 flex items-center justify-center flex-shrink-0">
-                    <span className="text-black font-black text-sm leading-none">{badge}</span>
-                  </div>
-
-                  {/* Text */}
-                  <div className="flex-1 min-w-0 text-left">
-                    <p className="text-white font-semibold text-sm leading-tight truncate">{route.name}</p>
-                    {route.area_type && (
-                      <p className="text-[#8F8F8F] text-xs mt-0.5">{route.area_type}</p>
-                    )}
-                  </div>
-
-                  {/* Chevron */}
-                  <ChevronRight className="w-5 h-5 text-[#8F8F8F] flex-shrink-0" />
-                </button>
-              );
-            })}
-        </div>
+        <EmptyState icon={MapIcon} title="No routes yet" body="An admin adds routes from the Admin tab. They show up here for everyone." />
       )}
 
-      <BottomNav />
-    </div>
+      <button className="btn btn-lg btn-full mt-6" onClick={() => navigate('/quick-catch')}>
+        <Zap aria-hidden />Quick Catch
+      </button>
+      <p className="field-hint text-center">Spotted a sign off-route? Log it without starting a patrol.</p>
+    </Screen>
   );
 };
 

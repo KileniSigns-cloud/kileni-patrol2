@@ -39,6 +39,57 @@ export function resetForNextSign(d: SignDraft): SignDraft {
   };
 }
 
+/** A business logged on the current patrol, as listed on the Active patrol screen. */
+export interface LoggedBusiness {
+  id: string;
+  name: string | null;
+  address: string | null;
+  lat: number | null;
+  lng: number | null;
+  signs: number;
+  /** Patrol type of the last sign saved here on this device; null after a rebuild on resume. */
+  lastPatrolType: PatrolType | null;
+}
+
+/** Adds a newly saved business (ignored if it's already listed). */
+export function withBusinessAdded(list: readonly LoggedBusiness[], b: LoggedBusiness): LoggedBusiness[] {
+  return list.some((x) => x.id === b.id) ? [...list] : [...list, b];
+}
+
+/** Counts a saved sign against its business and remembers the patrol type used. */
+export function withSignSaved(
+  list: readonly LoggedBusiness[],
+  businessId: string,
+  patrolType: PatrolType | null,
+): LoggedBusiness[] {
+  return list.map((b) =>
+    b.id === businessId ? { ...b, signs: b.signs + 1, lastPatrolType: patrolType ?? b.lastPatrolType } : b,
+  );
+}
+
+/**
+ * Draft for logging another sign at a business picked from the Active patrol list:
+ * same as "Log another sign here", using the patrol type last used at that business.
+ */
+export function draftForExistingBusiness(b: LoggedBusiness): SignDraft {
+  return resetForNextSign({
+    businessId: b.id,
+    businessName: b.name,
+    patrolType: b.lastPatrolType,
+    signCategory: null,
+    signType: null,
+    inspectionId: null,
+    signPhotoUrls: [],
+    surroundingPhotoUrls: [],
+    currentIssues: [],
+    currentNotes: '',
+    reusingBusiness: false,
+  });
+}
+
+/** Whole seconds since startedAt (never negative, e.g. with a slightly fast server clock). */
+export const secondsSince = (startedAtMs: number, nowMs: number) => Math.max(0, Math.floor((nowMs - startedAtMs) / 1000));
+
 /** Step 6 (patrol type) is skipped when the patrol type was kept from the previous sign. */
 export const skipsPatrolType = (d: Pick<SignDraft, 'reusingBusiness' | 'patrolType'>) =>
   d.reusingBusiness && d.patrolType !== null;
