@@ -1,9 +1,12 @@
 // "Log another sign here": two signs at one business must both save against that business.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildSignInspectionInsert, resetForNextSign, skipsPatrolType, type SignDraft } from '../src/lib/signFlow.ts';
+import {
+  buildSignInspectionInsert, draftForNewBusiness, resetForNextSign, skipsPatrolType, type SignDraft,
+} from '../src/lib/signFlow.ts';
 
-const user = { id: 'user-1', email: 'pat@example.com' };
+const ORG = 'org-1';
+const user = { id: 'user-1', email: 'pat@example.com', organisation_id: ORG };
 const NOW = '2026-09-23T14:00:00.000Z';
 
 const firstSign: SignDraft = {
@@ -90,7 +93,7 @@ test('insert payload is the original IssuesPage insert plus the photos\' inspect
   assert.deepEqual(r.row, {
     id: 'insp-1',
     business_id: 'biz-42',
-    organisation_id: '8239bb55-2423-43c1-bb54-6370765f2275',
+    organisation_id: ORG,
     business_name: 'Tim Hortons',
     sign_category: 'Illuminated',
     sign_type: 'Channel Letters',
@@ -106,4 +109,51 @@ test('insert payload is the original IssuesPage insert plus the photos\' inspect
     inspected_at: NOW,
     date_logged: NOW,
   });
+});
+
+// ── Organisation comes from the signed-in user, never a hardcoded id ─────────
+
+test('the sign is saved under the signed-in user\'s organisation', () => {
+  const r = buildSignInspectionInsert(firstSign, { ...user, organisation_id: 'org-2' }, '', NOW);
+  assert.ok(r.ok);
+  assert.equal(r.row.organisation_id, 'org-2');
+});
+
+test('saving a sign with no organisation on the account is a readable error', () => {
+  const r = buildSignInspectionInsert(firstSign, { ...user, organisation_id: '' }, '', NOW);
+  assert.equal(r.ok, false);
+  assert.match(!r.ok ? r.error : '', /^Sign not saved: your account has no organisation/);
+});
+
+// ── Add business after a saved sign starts clean ────────────────────────────
+
+test('a new business carries over none of the previous sign, only the patrol type', () => {
+  // Success -> Done -> Active patrol -> Add business.
+  const next = draftForNewBusiness(firstSign.patrolType);
+  assert.deepEqual(next, {
+    businessId: null,
+    businessName: null,
+    patrolType: 'night',
+    signCategory: null,
+    signType: null,
+    inspectionId: null,
+    signPhotoUrls: [],
+    surroundingPhotoUrls: [],
+    currentIssues: [],
+    currentNotes: '',
+    reusingBusiness: false,
+  });
+});
+
+test('the first sign at a new business is saved without the previous business\'s issues', () => {
+  const draft: SignDraft = {
+    ...draftForNewBusiness(firstSign.patrolType),
+    businessId: 'biz-43', inspectionId: 'insp-9', signPhotoUrls: ['org-1/patrol/insp-9/sign-1.jpg'],
+  };
+  const r = buildSignInspectionInsert(draft, user, draft.currentNotes, NOW);
+  assert.ok(r.ok);
+  assert.deepEqual(r.row.condition, []);
+  assert.equal(r.row.non_compliance_reason, null);
+  assert.equal(r.row.notes, null);
+  assert.equal(r.row.sign_type, null);
 });

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
-export function useGPS() {
+/** Captures a location on mount unless autoStart is false (then only on retry()). */
+export function useGPS(autoStart = true) {
   const [status, setStatus] = useState<'idle' | 'capturing' | 'success' | 'error'>('idle');
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
@@ -44,7 +45,7 @@ export function useGPS() {
     });
   }, []);
 
-  useEffect(() => { capture(); }, [capture]);
+  useEffect(() => { if (autoStart) capture(); }, [capture, autoStart]);
 
   return { latitude, longitude, accuracy, status, errorMessage, retry: capture };
 }

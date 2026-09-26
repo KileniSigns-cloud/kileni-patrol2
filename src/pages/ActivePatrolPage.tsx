@@ -23,7 +23,7 @@ const ActivePatrolPage: React.FC = () => {
   const location = useLocation();
   const {
     sessionId: liveSessionId, routeName, routeCode, sessionStartedAt,
-    loggedBusinesses, startSignAtBusiness, endSession,
+    loggedBusinesses, startSignAtBusiness, resetInspection, endSession,
   } = usePatrolSession();
   const { clearActiveSession } = usePatrolStore();
   const [showConfirm, setShowConfirm] = useState(false);
@@ -85,6 +85,12 @@ const ActivePatrolPage: React.FC = () => {
     navigate(`/photos/${sessionId}`);
   };
 
+  // A new business starts clean: the previous sign's issues, notes and sign type don't carry over.
+  const addBusiness = () => {
+    resetInspection();
+    navigate(`/add-business/${sessionId}`);
+  };
+
   const signs = stats?.signs ?? 0;
   const biz = stats?.businesses ?? 0;
 
@@ -103,7 +109,7 @@ const ActivePatrolPage: React.FC = () => {
       </div>
       {statsError && <p className="field-err -mt-2 mb-3" role="alert">{statsError}</p>}
 
-      <button className="btn btn-pri btn-xl btn-full" onClick={() => navigate(`/add-business/${sessionId}`)}>
+      <button className="btn btn-pri btn-xl btn-full" onClick={addBusiness}>
         <Plus aria-hidden />Add business
       </button>
 

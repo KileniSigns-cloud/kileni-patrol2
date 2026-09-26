@@ -131,14 +131,14 @@ export async function countSessionPhotos(businessIds: string[]): Promise<number>
 export async function fetchSessionBusinesses(sessionId: string, orgId: string): Promise<LoggedBusiness[]> {
   const { data, error } = await supabase
     .from('patrol_businesses')
-    .select(`id, name, address, lat, lng, ${INSPECTIONS}(count)`)
+    .select(`id, name, address, lat, lng, notes, ${INSPECTIONS}(count)`)
     .eq('session_id', sessionId)
     .eq('organisation_id', orgId)
     .order('date_added', { ascending: true });
   if (error) fail('Could not load the businesses on this patrol', error);
   const rows = (data ?? []) as unknown as {
     id: string; name: string | null; address: string | null; lat: number | null; lng: number | null;
-    sign_inspections: { count: number }[] | null;
+    notes: string | null; sign_inspections: { count: number }[] | null;
   }[];
   return rows.map((r) => ({
     id: r.id,
@@ -146,6 +146,7 @@ export async function fetchSessionBusinesses(sessionId: string, orgId: string): 
     address: r.address,
     lat: r.lat,
     lng: r.lng,
+    notes: r.notes,
     signs: r.sign_inspections?.[0]?.count ?? 0,
     lastPatrolType: null,
   }));

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useRef, useState, useEffect, useCallback } from 'react';
 import {
-  draftForExistingBusiness, resetForNextSign as nextSignDraft, secondsSince, withBusinessAdded, withSignSaved,
+  draftForExistingBusiness, draftForNewBusiness, resetForNextSign as nextSignDraft, secondsSince,
+  withBusinessAdded, withBusinessUpdated, withSignSaved,
   type LoggedBusiness, type PatrolType, type SignDraft,
 } from '../lib/signFlow';
 
@@ -53,11 +54,14 @@ interface PatrolSessionContextType {
   // Session lifecycle
   startSession: (sessionId: string, routeId: string, routeName: string, opts?: StartSessionOptions) => void;
   addLoggedBusiness: (b: LoggedBusiness) => void;
+  /** The Business step was revisited and saved: same id, new details. */
+  updateLoggedBusiness: (b: Pick<LoggedBusiness, 'id' | 'name' | 'address' | 'lat' | 'lng' | 'notes'>) => void;
   recordSignSaved: (businessId: string, patrolType: PatrolType | null) => void;
   setLoggedBusinesses: (list: LoggedBusiness[]) => void;
   /** Start a new sign at a business from the Active patrol list (skips step 6 when its patrol type is known). */
   startSignAtBusiness: (b: LoggedBusiness) => void;
   endSession: () => void;
+  /** Start a new business: clears the previous business and sign, keeps the patrol type. */
   resetInspection: () => void;
   resetForNextSign: () => void;
 }
@@ -154,19 +158,6 @@ export const PatrolSessionProvider: React.FC<{ children: React.ReactNode }> = ({
     setReusingBusiness(false);
   }, [stopTimer]);
 
-  const resetInspection = useCallback(() => {
-    setBusinessId(null);
-    setBusinessName(null);
-    setSignCategory(null);
-    setSignType(null);
-    setInspectionId(null);
-    setSignPhotoUrls([]);
-    setSurroundingPhotoUrls([]);
-    setCurrentIssues([]);
-    setCurrentNotes('');
-    // sessionId, routeId, routeName, patrolType are preserved
-  }, []);
-
   const applyDraft = useCallback((d: SignDraft) => {
     setBusinessId(d.businessId);
     setBusinessName(d.businessName);
@@ -181,8 +172,16 @@ export const PatrolSessionProvider: React.FC<{ children: React.ReactNode }> = ({
     setReusingBusiness(d.reusingBusiness);
   }, []);
 
+  // sessionId, routeId, routeName and patrolType are preserved.
+  const resetInspection = useCallback(() => applyDraft(draftForNewBusiness(patrolType)), [applyDraft, patrolType]);
+
   const startSignAtBusiness = useCallback((b: LoggedBusiness) => applyDraft(draftForExistingBusiness(b)), [applyDraft]);
   const addLoggedBusiness = useCallback((b: LoggedBusiness) => setLoggedBusinesses(list => withBusinessAdded(list, b)), []);
+  const updateLoggedBusiness = useCallback(
+    (b: Pick<LoggedBusiness, 'id' | 'name' | 'address' | 'lat' | 'lng' | 'notes'>) =>
+      setLoggedBusinesses(list => withBusinessUpdated(list, b)),
+    [],
+  );
   const recordSignSaved = useCallback(
     (id: string, type: PatrolType | null) => setLoggedBusinesses(list => withSignSaved(list, id, type)),
     [],
@@ -218,7 +217,7 @@ export const PatrolSessionProvider: React.FC<{ children: React.ReactNode }> = ({
       setPhotoUrls, setIssues, setNotes,
       startSession, endSession, resetInspection,
       resetForNextSign,
-      addLoggedBusiness, recordSignSaved, setLoggedBusinesses, startSignAtBusiness,
+      addLoggedBusiness, updateLoggedBusiness, recordSignSaved, setLoggedBusinesses, startSignAtBusiness,
     }}>
       {children}
     </PatrolSessionContext.Provider>

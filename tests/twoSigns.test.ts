@@ -7,8 +7,8 @@ import assert from 'node:assert/strict';
 import { buildSignInspectionInsert, ensureInspectionId, resetForNextSign, type SignDraft } from '../src/lib/signFlow.ts';
 import { buildInspectionPhotoRows, uploadPhotos, type StorageClient } from '../src/lib/photoStorage.ts';
 
-const ORG = '8239bb55-2423-43c1-bb54-6370765f2275';
-const user = { id: 'user-1', email: 'pat@example.com' };
+const ORG = 'org-1';
+const user = { id: 'user-1', email: 'pat@example.com', organisation_id: ORG };
 const NOW = '2026-09-23T14:00:00.000Z';
 const jpeg = () => new Blob(['x'], { type: 'image/jpeg' });
 
@@ -61,6 +61,8 @@ test('two signs at one business: 2 inspection ids, 2 sign rows, photos filed und
   assert.notEqual(first.sign.id, second.sign.id);
   assert.equal(first.sign.business_id, 'biz-42');
   assert.equal(second.sign.business_id, 'biz-42');
+  assert.equal(first.sign.organisation_id, ORG, 'sign rows use the same organisation as the photo paths');
+  assert.equal(second.sign.organisation_id, ORG);
 
   // Photos filed under each sign's own id, in storage and in inspection_photos.
   assert.deepEqual(first.photos.map((p) => p.photo_url), [
