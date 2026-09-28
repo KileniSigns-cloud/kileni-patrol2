@@ -5,6 +5,8 @@
 import { supabase } from './supabase';
 import type { PatrolRoute } from '../types';
 import { formatDurationHHMM, isCodeTaken, toRouteInsert, type RouteFormValues } from './routeForm';
+import type { RouteDeleteCheck } from './routeDelete';
+import type { ExportBusiness, ExportRoute, ExportSession } from './routeExport';
 
 export const HISTORY_PAGE_SIZE = 10;
 const STATS_DAYS = 30;
@@ -188,5 +190,68 @@ export async function fetchRouteHistory(routeId: string, page: number): Promise<
         photos: inspections.reduce((sum, i) => sum + (i.inspection_photos[0]?.count ?? 0), 0),
       };
     }),
+  };
+}
+
+// ── Delete (migration 010) ──────────────────────────────────────────────────
+
+async function callDeleteRoute(routeId: string, dryRun: boolean): Promise<RouteDeleteCheck> {
+  const { data, error } = await supabase.rpc('delete_route_if_unused', { p_route_id: routeId, p_dry_run: dryRun });
+  if (error) throw new Error(error.message);
+  return data as RouteDeleteCheck;
+}
+
+/** Can this route be hard-deleted? Nothing is changed. */
+export const checkRouteDelete = (routeId: string) => callDeleteRoute(routeId, true);
+
+/** Deletes the route if nothing uses it; otherwise returns status 'in_use' and changes nothing. */
+export const deleteRouteIfUnused = (routeId: string) => callDeleteRoute(routeId, false);
+
+// ── Export ──────────────────────────────────────────────────────────────────
+
+const EXPORT_BUSINESS = `id, name, address, lat, lng, gps_captured_at, date_added, notes,
+  ${INSPECTIONS}(id, condition, condition_rating, lead_id, inspection_photos(photo_type))`;
+
+export interface RouteExportData {
+  route: ExportRoute;
+  sessions: ExportSession[];
+  /** Businesses linked to the route itself (PATROL v1), not to a session. */
+  routeBusinesses: ExportBusiness[];
+}
+
+/** Everything the route CSV needs (RLS keeps it to the caller's organisation). */
+export async function fetchRouteExport(routeId: string): Promise<RouteExportData> {
+  const { data: route, error: routeError } = await supabase
+    .from('patrol_routes')
+    .select('id, code, name, archived_at')
+    .eq('id', routeId)
+    .single();
+  if (routeError) fail('Could not load the route', routeError);
+
+  const sessions: ExportSession[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from('patrol_sessions')
+      .select(`id, started_at, ended_at, is_complete, patroller_name, patrol_businesses(${EXPORT_BUSINESS})`)
+      .eq('route_id', routeId)
+      .order('started_at')
+      .range(from, from + PAGE - 1);
+    if (error) fail('Could not load the route\'s patrols', error);
+    const rows = (data ?? []) as unknown as ExportSession[];
+    sessions.push(...rows);
+    if (rows.length < PAGE) break;
+  }
+
+  const { data: businesses, error: bizError } = await supabase
+    .from('patrol_businesses')
+    .select(EXPORT_BUSINESS)
+    .eq('route_id', routeId)
+    .is('session_id', null);
+  if (bizError) fail('Could not load the route\'s businesses', bizError);
+
+  return {
+    route: route as ExportRoute,
+    sessions,
+    routeBusinesses: (businesses ?? []) as unknown as ExportBusiness[],
   };
 }

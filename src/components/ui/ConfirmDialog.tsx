@@ -8,13 +8,17 @@ interface ConfirmDialogProps {
   /** Red confirm button for destructive actions (end patrol, discard, remove, archive). */
   danger?: boolean;
   busy?: boolean;
+  /** Optional extra action shown above Cancel/Confirm (e.g. "Export CSV first"). */
+  secondary?: { label: string; onClick: () => void; busy?: boolean };
+  /** Hide the confirm button when there is nothing to confirm (Cancel reads "Close"). */
+  hideConfirm?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
 /** Bottom sheet on phones, centred dialog from 600px. Esc, overlay tap and Cancel all dismiss. */
 const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
-  open, title, message, confirmLabel, danger = false, busy = false, onConfirm, onCancel,
+  open, title, message, confirmLabel, danger = false, busy = false, secondary, hideConfirm = false, onConfirm, onCancel,
 }) => {
   const cancelRef = useRef<HTMLButtonElement>(null);
 
@@ -42,11 +46,18 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       >
         <h2 id="confirm-title" className="m-0 text-xl font-extrabold">{title}</h2>
         <p id="confirm-message" className="text-mut mt-2 mb-5">{message}</p>
-        <div className="flex gap-2.5">
-          <button ref={cancelRef} className="btn flex-1" onClick={onCancel} disabled={busy}>Cancel</button>
-          <button className={`btn flex-[2] ${danger ? 'btn-danger' : 'btn-pri'}`} onClick={onConfirm} disabled={busy}>
-            {busy ? <><span className="spin" aria-hidden />Working…</> : confirmLabel}
+        {secondary && (
+          <button className="btn btn-full mb-2.5" onClick={secondary.onClick} disabled={busy || secondary.busy}>
+            {secondary.busy ? <><span className="spin" aria-hidden />Working…</> : secondary.label}
           </button>
+        )}
+        <div className="flex gap-2.5">
+          <button ref={cancelRef} className="btn flex-1" onClick={onCancel} disabled={busy}>{hideConfirm ? 'Close' : 'Cancel'}</button>
+          {!hideConfirm && (
+            <button className={`btn flex-[2] ${danger ? 'btn-danger' : 'btn-pri'}`} onClick={onConfirm} disabled={busy}>
+              {busy ? <><span className="spin" aria-hidden />Working…</> : confirmLabel}
+            </button>
+          )}
         </div>
       </div>
     </div>

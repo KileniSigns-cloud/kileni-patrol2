@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Archive, History, Map as MapIcon, Pencil, Plus, Undo2 } from 'lucide-react';
+import { Archive, Download, History, Map as MapIcon, Pencil, Plus, Trash2, Undo2 } from 'lucide-react';
 import { usePatrolStore } from '../store/patrol.store';
 import type { RouteWithStats } from '../lib/routesApi';
 import type { PatrolRoute } from '../types';
 import { errorMessage } from '../lib/errors';
 import { plural } from '../lib/patrolHistory';
+import { buildRouteExportRows, routeExportFileName, toCsv } from '../lib/routeExport';
+import { routeDeleteDialog, type RouteDeleteCheck } from '../lib/routeDelete';
 import Screen from '../components/layout/Screen';
 import AdminHeader from '../components/admin/AdminHeader';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
@@ -17,19 +19,35 @@ type Tab = 'active' | 'archived';
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' });
 
+function downloadText(fileName: string, text: string, type: string) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = Object.assign(document.createElement('a'), { href: url, download: fileName });
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
 const AdminRoutesPage: React.FC = () => {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const tab: Tab = params.get('tab') === 'archived' ? 'archived' : 'active';
   const setTab = (t: Tab) => setParams(t === 'archived' ? { tab: 'archived' } : {}, { replace: true });
 
-  const { getActiveRoutes, getArchivedRoutes, archiveRoute, restoreRoute } = usePatrolStore();
+  const {
+    getActiveRoutes, getArchivedRoutes, archiveRoute, restoreRoute, checkRouteDelete, deleteRoute, getRouteExport,
+  } = usePatrolStore();
   const [active, setActive] = useState<RouteWithStats[]>([]);
   const [archived, setArchived] = useState<PatrolRoute[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [toArchive, setToArchive] = useState<RouteWithStats | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [exportingId, setExportingId] = useState<string | null>(null);
+  const [checkingId, setCheckingId] = useState<string | null>(null);
+  // Delete: the DB decides (migration 010). check is its dry-run answer, shown before anything changes.
+  const [toDelete, setToDelete] = useState<{ route: PatrolRoute; check: RouteDeleteCheck } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -72,6 +90,56 @@ const AdminRoutesPage: React.FC = () => {
       toast.error(errorMessage(e, 'Could not restore route.'));
     } finally {
       setBusyId(null);
+    }
+  };
+
+  const exportCsv = async (route: PatrolRoute) => {
+    setExportingId(route.id);
+    try {
+      const { route: r, sessions, routeBusinesses } = await getRouteExport(route.id);
+      const rows = buildRouteExportRows(r, sessions, routeBusinesses);
+      downloadText(routeExportFileName(r.code, new Date().toISOString()), toCsv(rows), 'text/csv;charset=utf-8');
+      toast.success(`Exported ${r.code || r.name}: ${rows.length} ${plural('row', rows.length)}`);
+    } catch (e) {
+      toast.error(errorMessage(e, 'Could not export route.'));
+    } finally {
+      setExportingId(null);
+    }
+  };
+
+  const startDelete = async (route: PatrolRoute) => {
+    setCheckingId(route.id);
+    try {
+      setToDelete({ route, check: await checkRouteDelete(route.id) });
+    } catch (e) {
+      toast.error(errorMessage(e, 'Could not check whether the route can be deleted.'));
+    } finally {
+      setCheckingId(null);
+    }
+  };
+
+  const deleteDialog = toDelete ? routeDeleteDialog(toDelete.route, toDelete.check) : null;
+
+  const confirmDelete = async () => {
+    if (!toDelete || !deleteDialog) return;
+    const { route } = toDelete;
+    setDeleting(true);
+    try {
+      if (deleteDialog.action === 'archive') {
+        await archiveRoute(route.id);
+        toast.success(`Archived ${route.name}`);
+      } else {
+        const result = await deleteRoute(route.id);
+        // Used since the check (e.g. a patrol just started): show why instead of deleting.
+        if (result.status === 'in_use') { setToDelete({ route, check: result }); return; }
+        toast.success(`Deleted ${route.name}`);
+      }
+      setToDelete(null);
+      await load();
+    } catch (e) {
+      toast.error(errorMessage(e, 'Could not delete route.'));
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -137,7 +205,13 @@ const AdminRoutesPage: React.FC = () => {
               <div className="flex flex-wrap gap-2 mt-3.5 [&>.btn]:flex-1 [&>.btn]:min-w-[92px]">
                 <button className="btn btn-sm" onClick={() => navigate(`/admin/routes/${r.id}/history`)}><History aria-hidden />History</button>
                 <button className="btn btn-sm" disabled title="Editing is coming in a later release"><Pencil aria-hidden />Edit</button>
+                <button className="btn btn-sm" onClick={() => exportCsv(r)} disabled={exportingId === r.id}>
+                  {exportingId === r.id ? <><span className="spin" aria-hidden />Exporting…</> : <><Download aria-hidden />Export</>}
+                </button>
                 <button className="btn btn-sm btn-dt" onClick={() => setToArchive(r)} disabled={busyId === r.id}><Archive aria-hidden />Archive</button>
+                <button className="btn btn-sm btn-dt" onClick={() => startDelete(r)} disabled={busyId === r.id || checkingId === r.id}>
+                  {checkingId === r.id ? <><span className="spin" aria-hidden />Checking…</> : <><Trash2 aria-hidden />Delete</>}
+                </button>
               </div>
             </div>
           ))
@@ -160,6 +234,12 @@ const AdminRoutesPage: React.FC = () => {
               <button className="btn btn-sm" onClick={() => restore(r)} disabled={busyId === r.id}>
                 {busyId === r.id ? <><span className="spin" aria-hidden />Restoring…</> : <><Undo2 aria-hidden />Restore</>}
               </button>
+              <button className="btn btn-sm" onClick={() => exportCsv(r)} disabled={exportingId === r.id}>
+                {exportingId === r.id ? <><span className="spin" aria-hidden />Exporting…</> : <><Download aria-hidden />Export</>}
+              </button>
+              <button className="btn btn-sm btn-dt" onClick={() => startDelete(r)} disabled={busyId === r.id || checkingId === r.id}>
+                {checkingId === r.id ? <><span className="spin" aria-hidden />Checking…</> : <><Trash2 aria-hidden />Delete</>}
+              </button>
             </div>
           </div>
         ))}
@@ -174,6 +254,23 @@ const AdminRoutesPage: React.FC = () => {
         busy={busyId !== null && busyId === toArchive?.id}
         onConfirm={confirmArchive}
         onCancel={() => setToArchive(null)}
+      />
+
+      <ConfirmDialog
+        open={deleteDialog !== null}
+        danger
+        title={deleteDialog?.title ?? ''}
+        message={deleteDialog?.message ?? ''}
+        confirmLabel={deleteDialog?.action === 'archive' ? 'Archive instead' : 'Delete route'}
+        hideConfirm={deleteDialog?.action === 'none'}
+        busy={deleting}
+        secondary={toDelete ? {
+          label: 'Export CSV first',
+          onClick: () => exportCsv(toDelete.route),
+          busy: exportingId === toDelete.route.id,
+        } : undefined}
+        onConfirm={confirmDelete}
+        onCancel={() => setToDelete(null)}
       />
     </Screen>
   );

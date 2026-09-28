@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabase';
 import * as routesApi from '../lib/routesApi';
 import type { RouteFormValues } from '../lib/routeForm';
+import type { RouteDeleteCheck } from '../lib/routeDelete';
 import type { PatrolRoute, User } from '../types';
 
 interface PatrolStore {
@@ -26,6 +27,9 @@ interface PatrolStore {
   archiveRoute: (routeId: string) => Promise<void>;
   restoreRoute: (routeId: string) => Promise<void>;
   getRouteHistory: (routeId: string, page: number) => Promise<routesApi.RouteHistoryPage>;
+  checkRouteDelete: (routeId: string) => Promise<RouteDeleteCheck>;
+  deleteRoute: (routeId: string) => Promise<RouteDeleteCheck>;
+  getRouteExport: (routeId: string) => Promise<routesApi.RouteExportData>;
 }
 
 export const usePatrolStore = create<PatrolStore>()(
@@ -84,6 +88,8 @@ export const usePatrolStore = create<PatrolStore>()(
       getActiveRoutes: async () => routesApi.fetchActiveRoutesWithStats(await routesApi.getOrgId()),
       getArchivedRoutes: async () => routesApi.fetchArchivedRoutes(await routesApi.getOrgId()),
       getRouteHistory: (routeId, page) => routesApi.fetchRouteHistory(routeId, page),
+      checkRouteDelete: (routeId) => routesApi.checkRouteDelete(routeId),
+      getRouteExport: (routeId) => routesApi.fetchRouteExport(routeId),
 
       // Mutations refresh the patroller-facing route list so it never shows stale routes.
       createRoute: async (values) => {
@@ -98,6 +104,11 @@ export const usePatrolStore = create<PatrolStore>()(
       restoreRoute: async (routeId) => {
         await routesApi.restoreRoute(routeId);
         await get().loadRoutes();
+      },
+      deleteRoute: async (routeId) => {
+        const result = await routesApi.deleteRouteIfUnused(routeId);
+        if (result.status === 'deleted') await get().loadRoutes();
+        return result;
       },
     }),
     {
