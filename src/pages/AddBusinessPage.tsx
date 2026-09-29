@@ -33,6 +33,8 @@ const AddBusinessPage: React.FC = () => {
   const useStoredLocation = hasStoredLocation && !relocating;
   const lat = useStoredLocation ? editing!.lat : gpsStatus === 'success' ? latitude : null;
   const lng = useStoredLocation ? editing!.lng : gpsStatus === 'success' ? longitude : null;
+  // Accuracy is only known for a fresh reading; a kept location isn't rewritten (not moved).
+  const gpsAccuracy = !useStoredLocation && gpsStatus === 'success' ? accuracy : null;
   const redoGPS = () => { setRelocating(true); retryGPS(); };
 
   const [businessName, setBusinessNameInput] = useState(editing?.name ?? '');
@@ -49,7 +51,7 @@ const AddBusinessPage: React.FC = () => {
   const handleSave = async () => {
     setError(null);
     const write = buildBusinessWrite(
-      { name: businessName, address, notes, lat, lng }, editing, sessionId, currentUser, new Date().toISOString(),
+      { name: businessName, address, notes, lat, lng, accuracy: gpsAccuracy }, editing, sessionId, currentUser, new Date().toISOString(),
     );
     if (!write.ok) { setError(write.error); return; }
 

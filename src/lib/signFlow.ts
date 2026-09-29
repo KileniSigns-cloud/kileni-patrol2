@@ -105,6 +105,8 @@ export interface BusinessForm {
   notes: string;
   lat: number | null;
   lng: number | null;
+  /** GPS accuracy in metres for a fresh reading; omitted or null when unknown or stored. */
+  accuracy?: number | null;
 }
 
 export type BusinessWrite =
@@ -139,6 +141,7 @@ export function buildBusinessWrite(
     gps_latitude: form.lat,
     gps_longitude: form.lng,
     gps_captured_at: located ? nowIso : null,
+    gps_accuracy_m: located ? form.accuracy ?? null : null,
   };
 
   if (existing) {

@@ -1,12 +1,16 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useGPS } from '../hooks/useGPS';
+import { useFreshLocation } from '../hooks/useFreshLocation';
 import { useCamera } from '../hooks/useCamera';
 import { supabase } from '../lib/supabase';
 import { buildInspectionPhotoRows, compressToBlob, uploadPhotos } from '../lib/photoStorage';
 import { errorMessage } from '../lib/errors';
+import {
+  createSubmitGate, gpsErrorText, isApproximate, isFromForm, quickCatchLocationCheck, resolveSubmitFix, secondsLeft,
+  type Fix,
+} from '../lib/gpsFix';
 import { usePatrolStore } from '../store/patrol.store';
-import { Camera, Check, CheckCircle2, MapPinOff, Upload, Zap } from 'lucide-react';
+import { AlertTriangle, Camera, Check, CheckCircle2, MapPinOff, Upload, Zap } from 'lucide-react';
 import Screen from '../components/layout/Screen';
 import FlowFooter, { FooterRow } from '../components/flow/FlowFooter';
 
@@ -39,13 +43,20 @@ const ISSUE_TYPES = [
 
 const QuickCatchPage: React.FC = () => {
   const navigate = useNavigate();
-  const { latitude, longitude, status: gpsStatus, errorMessage: gpsErrorMessage, retry: retryGPS } = useGPS();
+  const location = useFreshLocation();
   const camera = useCamera();
   const { currentUser } = usePatrolStore();
-  // Ids and upload paths of a submit whose inspection record is saved but that failed later.
+  // Ids, upload paths and location of a submit whose inspection record is saved but that
+  // failed later. A retry reuses the same location, so it never moves the lead.
   const progress = useRef<{
     leadId: string; inspectionId: string; paths: string[] | null; stubSaved: boolean; photosSaved: boolean;
+    fix: Fix | null;
   } | null>(null);
+  // Readings from before this form started belong to the previous catch (see gpsFix.ts).
+  const formStartedAt = useRef(Date.now());
+  // One submit at a time: a second tap during the location wait or the save does nothing.
+  const submitGate = useRef(createSubmitGate());
+  const addressInput = useRef<HTMLInputElement>(null);
 
   const [businessName, setBusinessName] = useState('');
   const [address, setAddress] = useState('');
@@ -56,14 +67,27 @@ const QuickCatchPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [savedWarning, setSavedWarning] = useState<string | null>(null);
+  // Set while submit waits for a fresh reading: drives the countdown on the Save button.
+  const [waitDeadline, setWaitDeadline] = useState<number | null>(null);
+  const [clock, setClock] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (waitDeadline === null) return;
+    setClock(Date.now());
+    const t = setInterval(() => setClock(Date.now()), 250);
+    return () => clearInterval(t);
+  }, [waitDeadline]);
 
   const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.length) return;
+    // The patroller is usually at the sign for the first photo: take a reading there.
+    if (camera.files.length === 0) void location.refresh();
     Array.from(e.target.files).forEach(f => camera.capture(f));
     e.target.value = '';
   };
 
-  const handleSubmit = async () => {
+  const submit = async () => {
     setError(null);
     if (!businessName.trim()) { setError('Business name is required.'); return; }
     if (camera.files.length === 0) { setError('At least one photo is required.'); return; }
@@ -72,9 +96,29 @@ const QuickCatchPage: React.FC = () => {
     setSaving(true);
 
     // Every step is required and stops the save with its error. Once the inspection
-    // record exists, a retry continues from the failed step with the same ids and
-    // photos instead of creating a second record.
-    const p = progress.current ?? { leadId: crypto.randomUUID(), inspectionId: crypto.randomUUID(), paths: null, stubSaved: false, photosSaved: false };
+    // record exists, a retry continues from the failed step with the same ids, photos
+    // and location instead of creating a second record.
+    let p = progress.current;
+    if (!p) {
+      // Location first, before any upload: giving up during the wait leaves nothing half-saved.
+      const fix = await resolveSubmitFix({
+        current: location.fixRef.current,
+        formStartedAt: formStartedAt.current,
+        now: Date.now,
+        refresh: location.refresh,
+        onWait: setWaitDeadline,
+      });
+      setWaitDeadline(null);
+      const check = quickCatchLocationCheck(fix, address);
+      if (!check.ok) {
+        setError(check.error);
+        setSaving(false);
+        addressInput.current?.focus();
+        return;
+      }
+      setSavedWarning(check.warning);
+      p = { leadId: crypto.randomUUID(), inspectionId: crypto.randomUUID(), paths: null, stubSaved: false, photosSaved: false, fix };
+    }
     try {
       // STEP A: upload photos to patrol-media/{org}/quick-catch/{lead_id}/ (awaited).
       if (!p.paths) {
@@ -128,8 +172,9 @@ const QuickCatchPage: React.FC = () => {
         source_id: p.inspectionId,
         business_name: businessName.trim(),
         address: address.trim() || null,
-        latitude,
-        longitude,
+        latitude: p.fix?.lat ?? null,
+        longitude: p.fix?.lng ?? null,
+        gps_accuracy_m: p.fix?.accuracy ?? null,
         sign_category: signCategory,
         sign_type: signType || null,
         issue_type: issueType || null,
@@ -148,8 +193,18 @@ const QuickCatchPage: React.FC = () => {
     }
   };
 
+  const handleSubmit = () => { void submitGate.current.run(submit); };
+
   const reset = () => {
     progress.current = null;
+    // A new catch: forget the last location and take a new reading.
+    formStartedAt.current = Date.now();
+    location.clear();
+    void location.refresh();
+    setSavedWarning(null);
+    // A successful save leaves saving on (the success screen replaces the form). Without
+    // this, the next form's button stayed on "Saving…" and could not be tapped.
+    setSaving(false);
     setBusinessName('');
     setAddress('');
     setSignCategory('Illuminated');
@@ -178,13 +233,23 @@ const QuickCatchPage: React.FC = () => {
           </div>
           <h1>Quick Catch logged</h1>
           <p className="sub">Added to BUILT CRM as a new lead.</p>
+          {savedWarning && <p className="sub">{savedWarning}</p>}
         </div>
       </Screen>
     );
   }
 
   // ── Form ────────────────────────────────────────────────────────────────────
-  const hint = !businessName.trim() ? 'Enter the business name.' : camera.photos.length === 0 ? 'Add at least one photo.' : null;
+  const fix = isFromForm(location.fix, formStartedAt.current) ? location.fix : null;
+  // No reading and the GPS has given up: the address becomes the only way to save.
+  const needAddress = !fix && location.status === 'error';
+  const hint = !businessName.trim() ? 'Enter the business name.'
+    : camera.photos.length === 0 ? 'Add at least one photo.'
+    : needAddress && !address.trim() ? 'No location: type the address, or tap Retry.'
+    : null;
+  const retryButton = (label: string) => (
+    <button className="btn btn-sm" onClick={() => void location.refresh()} disabled={location.status === 'capturing'}>{label}</button>
+  );
 
   return (
     <Screen
@@ -194,7 +259,9 @@ const QuickCatchPage: React.FC = () => {
           <FooterRow>
             <button className="btn" onClick={() => navigate(-1)} disabled={saving}>Cancel</button>
             <button className="btn btn-pri" onClick={handleSubmit} disabled={saving || hint !== null}>
-              {saving ? <><span className="spin" aria-hidden />Saving…</> : <><Zap aria-hidden />Log Quick Catch</>}
+              {waitDeadline !== null ? <><span className="spin" aria-hidden />Getting location… {secondsLeft(waitDeadline, clock)}</>
+                : saving ? <><span className="spin" aria-hidden />Saving…</>
+                : <><Zap aria-hidden />Log Quick Catch</>}
             </button>
           </FooterRow>
         </FlowFooter>
@@ -204,22 +271,34 @@ const QuickCatchPage: React.FC = () => {
       <p className="sub">A sign spotted outside a patrol. It goes straight to the CRM as a lead.</p>
 
       {/* GPS */}
-      {gpsStatus === 'success' ? (
+      {fix && !isApproximate(fix) ? (
         <div className="flex gap-3 items-center rounded-2xl p-3.5 bg-oks">
           <CheckCircle2 className="w-7 h-7 text-ok flex-none" aria-hidden />
           <div className="flex-1 min-w-0">
             <b>Location captured</b>
-            <small className="block text-mut text-sm tabular-nums">{latitude?.toFixed(5)}, {longitude?.toFixed(5)}</small>
+            <small className="block text-mut text-sm tabular-nums">
+              {fix.lat.toFixed(5)}, {fix.lng.toFixed(5)}{fix.accuracy !== null ? `, ± ${fix.accuracy} m` : ''}
+            </small>
           </div>
+          {location.status === 'capturing' ? <span className="spin text-ok" aria-label="Updating location" /> : retryButton('Update')}
         </div>
-      ) : gpsStatus === 'error' ? (
+      ) : fix ? (
+        <div className="flex gap-3 items-center rounded-2xl p-3.5 bg-pris" role="status">
+          <AlertTriangle className="w-7 h-7 text-prix flex-none" aria-hidden />
+          <div className="flex-1 min-w-0">
+            <b>Approximate location, ± {fix.accuracy} m</b>
+            <small className="block text-mut text-sm">Step outside or wait, then tap Retry. You can still save.</small>
+          </div>
+          {location.status === 'capturing' ? <span className="spin text-prix" aria-label="Updating location" /> : retryButton('Retry')}
+        </div>
+      ) : location.status === 'error' && location.errorCode !== null ? (
         <div className="flex gap-3 items-center rounded-2xl p-3.5 bg-accs" role="alert">
           <MapPinOff className="w-7 h-7 text-acc flex-none" aria-hidden />
           <div className="flex-1 min-w-0">
-            <b>Location unavailable</b>
-            <small className="block text-mut text-sm">{gpsErrorMessage}</small>
+            <b>{location.errorCode === 1 ? 'Location blocked' : location.errorCode === 3 ? 'No GPS fix yet' : 'Location unavailable'}</b>
+            <small className="block text-mut text-sm">{gpsErrorText(location.errorCode)}</small>
           </div>
-          <button className="btn btn-sm" onClick={retryGPS}>Retry</button>
+          {retryButton('Retry')}
         </div>
       ) : (
         <div className="flex gap-3 items-center rounded-2xl p-3.5 bg-pris" role="status">
@@ -231,8 +310,8 @@ const QuickCatchPage: React.FC = () => {
       <label className="field-label" htmlFor="qc-name">Business name</label>
       <input id="qc-name" className="input" value={businessName} onChange={e => setBusinessName(e.target.value)} placeholder="As shown on the sign" autoCapitalize="words" />
 
-      <label className="field-label" htmlFor="qc-addr">Address <span>(optional)</span></label>
-      <input id="qc-addr" className="input" value={address} onChange={e => setAddress(e.target.value)} placeholder="Street number and name" autoCapitalize="words" />
+      <label className="field-label" htmlFor="qc-addr">Address <span>{needAddress ? '(required: no location)' : '(optional)'}</span></label>
+      <input id="qc-addr" ref={addressInput} className="input" value={address} onChange={e => setAddress(e.target.value)} placeholder="Street number and name" autoCapitalize="words" />
 
       <h2 className="section-title">
         Photos <span className="tag-req">Required</span>

@@ -13,7 +13,7 @@ const NOW = '2026-09-26T15:00:00.000Z';
 const LATER = '2026-09-26T15:02:00.000Z';
 const SESSION = 'session-7';
 
-const form: BusinessForm = { name: 'Ceek', address: '12 King St', notes: '', lat: 43.65, lng: -79.38 };
+const form: BusinessForm = { name: 'Ceek', address: '12 King St', notes: '', lat: 43.65, lng: -79.38, accuracy: 12 };
 
 /** The list entry AddBusinessPage adds after an insert (the DB returns id + saved values). */
 const listed = (id: string, f: BusinessForm): LoggedBusiness => ({
@@ -36,6 +36,7 @@ test('a new business is inserted with the user\'s organisation and rep_id', () =
     gps_latitude: 43.65,
     gps_longitude: -79.38,
     gps_captured_at: NOW,
+    gps_accuracy_m: 12,
     date_added: NOW,
     type: 'existing',
   });
@@ -47,6 +48,14 @@ test('a new business without a location saves null coordinates and no capture ti
   assert.equal(w.row.lat, null);
   assert.equal(w.row.gps_latitude, null);
   assert.equal(w.row.gps_captured_at, null);
+  assert.equal(w.row.gps_accuracy_m, null, 'no accuracy without a location');
+});
+
+test('accuracy unknown (browser gave none, or an older caller): null, not 0', () => {
+  const { accuracy: _omit, ...noAccuracy } = form;
+  const w = buildBusinessWrite(noAccuracy, null, SESSION, user, NOW);
+  assert.ok(w.ok && w.mode === 'insert');
+  assert.equal(w.row.gps_accuracy_m, null);
 });
 
 test('saving a business with no organisation on the account is a readable error', () => {
@@ -87,12 +96,19 @@ test('Back from Photos, edit, save again: the same row is updated, never a secon
 
 test('a re-captured location (Redo) is written with a new capture time', () => {
   const existing = listed('biz-1', form);
-  const w = buildBusinessWrite({ ...form, lat: 43.66, lng: -79.39 }, existing, SESSION, user, LATER);
+  const w = buildBusinessWrite({ ...form, lat: 43.66, lng: -79.39, accuracy: 4 }, existing, SESSION, user, LATER);
   assert.ok(w.ok && w.mode === 'update');
   assert.deepEqual(w.row, {
     name: 'Ceek', address: '12 King St', notes: null,
-    lat: 43.66, lng: -79.39, gps_latitude: 43.66, gps_longitude: -79.39, gps_captured_at: LATER,
+    lat: 43.66, lng: -79.39, gps_latitude: 43.66, gps_longitude: -79.39, gps_captured_at: LATER, gps_accuracy_m: 4,
   });
+});
+
+test('a kept location is not rewritten, so its stored accuracy stays (AddBusinessPage passes null)', () => {
+  const existing = listed('biz-1', form);
+  const w = buildBusinessWrite({ ...form, notes: 'Side door', accuracy: null }, existing, SESSION, user, LATER);
+  assert.ok(w.ok && w.mode === 'update');
+  assert.equal('gps_accuracy_m' in w.row, false);
 });
 
 test('an update never changes session, organisation or rep_id', () => {
