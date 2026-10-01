@@ -1,0 +1,287 @@
+{
+  "_note": "patrol_routes.steps of the 15 live PATROL v1 routes, exported 2026-10-01 (route text only).",
+  "routes": {
+    "AUR-01": [
+      {
+        "id": 1,
+        "label": "North on Industrial Pkwy S to St. Johns Sideroad"
+      },
+      {
+        "id": 2,
+        "label": "Loop through Eric T Smith Way"
+      },
+      {
+        "id": 3,
+        "label": "Return via Yonge St heading South"
+      }
+    ],
+    "BRAM-02": [
+      {
+        "id": 1,
+        "label": "North on Airport Rd to Williams Pkwy"
+      },
+      {
+        "id": 2,
+        "label": "West on Williams Pkwy to Chrysler Dr"
+      },
+      {
+        "id": 3,
+        "label": "South through Chrysler Dr and Orion Business Park"
+      },
+      {
+        "id": 4,
+        "label": "West on Steeles Ave E to Hwy 410"
+      }
+    ],
+    "CON-01": [
+      {
+        "id": 1,
+        "label": "North on Keele St to Langstaff Rd"
+      },
+      {
+        "id": 2,
+        "label": "West on Langstaff Rd to Jane St"
+      },
+      {
+        "id": 3,
+        "label": "South on Jane St to Steeles Ave"
+      },
+      {
+        "id": 4,
+        "label": "East on Steeles Ave back to Keele St"
+      },
+      {
+        "id": 5,
+        "label": "Interior Loop: Rivermede Rd and Basaltic Rd"
+      }
+    ],
+    "DUF-01": [
+      {
+        "id": 1,
+        "label": "South on Dufferin St to Finch Ave W"
+      },
+      {
+        "id": 2,
+        "label": "West on Finch Ave W to Keele St"
+      },
+      {
+        "id": 3,
+        "label": "North on Keele St to Steeles Ave"
+      },
+      {
+        "id": 4,
+        "label": "East on Steeles Ave back to Dufferin St"
+      },
+      {
+        "id": 5,
+        "label": "Interior Loop: Martin Ross Ave and Supertest Rd"
+      }
+    ],
+    "ETB-01": [
+      {
+        "id": 1,
+        "label": "West on The Queensway to North Queen St"
+      },
+      {
+        "id": 2,
+        "label": "Loop through North Queen St retail blocks"
+      },
+      {
+        "id": 3,
+        "label": "South on Browns Line to Evans Ave"
+      },
+      {
+        "id": 4,
+        "label": "East on Evans Ave back toward Islington"
+      }
+    ],
+    "GRID AP-01": [
+      {
+        "id": 1,
+        "label": "North on Carlingview Dr to Renforth Dr"
+      },
+      {
+        "id": 2,
+        "label": "Loop through Attwell Dr and Fasken Dr industrial pockets"
+      },
+      {
+        "id": 3,
+        "label": "West on Belfield Rd to Rexdale Yard"
+      },
+      {
+        "id": 4,
+        "label": "East on Dixon Rd back toward Hwy 427"
+      }
+    ],
+    "GRID REX-01": [
+      {
+        "id": 1,
+        "label": "1.\tWest on Rexdale Blvd to Hwy 427"
+      },
+      {
+        "id": 2,
+        "label": "2.\tNorth on Hwy 27 to Finch Ave W"
+      },
+      {
+        "id": 3,
+        "label": "3.\tEast on Finch Ave W to Martin Grove Rd"
+      },
+      {
+        "id": 4,
+        "label": "4.\tSouth on Martin Grove Rd back to Rexdale Blvd"
+      }
+    ],
+    "LEA-01": [
+      {
+        "id": 1,
+        "label": "South on Laird Dr to Wicksteed Ave"
+      },
+      {
+        "id": 2,
+        "label": "East on Wicksteed Ave through industrial pocket"
+      },
+      {
+        "id": 3,
+        "label": "Loop through Bethridge Rd side streets"
+      },
+      {
+        "id": 4,
+        "label": "North on Laird Dr back to Eglinton"
+      }
+    ],
+    "MARK-01": [
+      {
+        "id": 1,
+        "label": "North on Woodbine Ave to Hwy 7"
+      },
+      {
+        "id": 2,
+        "label": "Loop through Cochrane Dr Corporate"
+      },
+      {
+        "id": 3,
+        "label": "South on Woodbine Ave to 14th Ave"
+      },
+      {
+        "id": 4,
+        "label": "East on 14th Ave to Warden Ave"
+      }
+    ],
+    "NEW-01": [
+      {
+        "id": 1,
+        "label": "West on Gorham St to Prospect St"
+      },
+      {
+        "id": 2,
+        "label": "North on Prospect St to Davis Dr"
+      },
+      {
+        "id": 3,
+        "label": "East on Davis Dr Major Retail to Leslie St"
+      },
+      {
+        "id": 4,
+        "label": "South on Leslie St back to Gorham St"
+      }
+    ],
+    "NYC-01": [
+      {
+        "id": 1,
+        "label": "South on Yonge St to York Mills Rd"
+      },
+      {
+        "id": 2,
+        "label": "East on York Mills Rd to Bayview Ave"
+      },
+      {
+        "id": 3,
+        "label": "North on Bayview Ave to Sheppard Ave E"
+      },
+      {
+        "id": 4,
+        "label": "West on Sheppard Ave back to Yonge St"
+      }
+    ],
+    "RH-01": [
+      {
+        "id": 1,
+        "label": "North on Leslie St to 16th Ave"
+      },
+      {
+        "id": 2,
+        "label": "West on 16th Ave to West Beaver Creek Rd"
+      },
+      {
+        "id": 3,
+        "label": "South through Beaver Creek and East Pearce loop"
+      },
+      {
+        "id": 4,
+        "label": "West on Hwy 7 to Bayview Ave"
+      }
+    ],
+    "STK-01": [
+      {
+        "id": 1,
+        "label": "West on St. Clair Ave W to Jane St"
+      },
+      {
+        "id": 2,
+        "label": "North on Jane St to Alliance Ave"
+      },
+      {
+        "id": 3,
+        "label": "East on Alliance Ave to Rockcliffe Blvd"
+      },
+      {
+        "id": 4,
+        "label": "Loop through Glen Scarlett Rd and Symes Rd"
+      }
+    ],
+    "VMC-01": [
+      {
+        "id": 1,
+        "label": "West on Hwy 7 to Pine Valley Dr"
+      },
+      {
+        "id": 2,
+        "label": "South on Pine Valley Dr to Steeles Ave W"
+      },
+      {
+        "id": 3,
+        "label": "East on Steeles Ave W to Jane St"
+      },
+      {
+        "id": 4,
+        "label": "North on Jane St back to Hwy 7"
+      },
+      {
+        "id": 5,
+        "label": "Focus: Edgeley Blvd"
+      }
+    ],
+    "WDB-01": [
+      {
+        "id": 1,
+        "label": "West on Steeles Ave W to Pine Valley Dr"
+      },
+      {
+        "id": 2,
+        "label": "North on Pine Valley Dr to Hwy 7"
+      },
+      {
+        "id": 3,
+        "label": "East on Hwy 7 to Weston Rd"
+      },
+      {
+        "id": 4,
+        "label": "South on Weston Rd back to Steeles Ave W"
+      },
+      {
+        "id": 5,
+        "label": "Interior Loop: Hanlan Rd and Trowers Rd"
+      }
+    ]
+  }
+}

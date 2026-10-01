@@ -5,6 +5,13 @@ export const AREA_TYPES = ['commercial', 'mixed', 'residential'] as const;
 export type AreaType = (typeof AREA_TYPES)[number];
 
 export const NAME_MAX = 100;
+export const CODE_MAX = 30;
+
+/**
+ * Route codes: letters, digits, single spaces and hyphens, starting and ending with a letter or
+ * digit. The same rule as the CSV import and import_routes (migration 013).
+ */
+export const CODE_PATTERN = /^[A-Z0-9]([A-Z0-9 -]*[A-Z0-9])?$/;
 
 export interface RouteFormValues {
   name: string;
@@ -28,8 +35,8 @@ export const EMPTY_ROUTE_FORM: RouteFormValues = {
   hotspots: [],
 };
 
-/** Codes are compared case-insensitively and without surrounding whitespace. */
-export const normaliseCode = (code: string): string => code.trim().toUpperCase();
+/** "  grid   mis-01 " -> "GRID MIS-01": trimmed, repeated spaces collapsed, upper case. Codes are stored this way. */
+export const normaliseCode = (code: string): string => code.trim().replace(/\s+/g, ' ').toUpperCase();
 
 /**
  * Field-level validation that needs no database. Code uniqueness is checked separately
@@ -41,8 +48,12 @@ export function validateRouteForm(values: RouteFormValues): RouteFormErrors {
   if (!name) errors.name = 'Name is required.';
   else if (name.length > NAME_MAX) errors.name = `Name must be ${NAME_MAX} characters or fewer.`;
 
-  if (!values.code.trim()) errors.code = 'Code is required.';
-  else if (/\s/.test(values.code.trim())) errors.code = 'Code cannot contain spaces.';
+  const code = normaliseCode(values.code);
+  if (!code) errors.code = 'Code is required.';
+  else if (code.length > CODE_MAX) errors.code = `Code must be ${CODE_MAX} characters or fewer.`;
+  else if (!CODE_PATTERN.test(code)) {
+    errors.code = 'Use only letters, numbers, spaces and hyphens, starting and ending with a letter or number (e.g. GRID MIS-01).';
+  }
 
   if (values.area_type !== '' && !AREA_TYPES.includes(values.area_type)) {
     errors.area_type = 'Choose commercial, mixed or residential.';
@@ -50,7 +61,7 @@ export function validateRouteForm(values: RouteFormValues): RouteFormErrors {
   return errors;
 }
 
-/** True when `code` matches any existing code (archived routes included). */
+/** True when `code` matches any existing code (archived routes included), ignoring case and spacing. */
 export function isCodeTaken(code: string, existingCodes: readonly (string | null)[]): boolean {
   const wanted = normaliseCode(code);
   return existingCodes.some((c) => c !== null && normaliseCode(c) === wanted);
@@ -69,7 +80,7 @@ export function toRouteInsert(values: RouteFormValues, organisationId: string) {
   return {
     organisation_id: organisationId,
     name: values.name.trim(),
-    code: values.code.trim(),
+    code: normaliseCode(values.code),
     description: orNull(values.description),
     area_type: values.area_type === '' ? null : values.area_type,
     focus: orNull(values.focus),

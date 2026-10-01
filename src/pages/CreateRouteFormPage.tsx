@@ -95,7 +95,12 @@ const CreateRouteFormPage: React.FC = () => {
           )}
         </Field>
 
-        <Field label="Code" required error={errors.code} hint="Unique in your company, archived routes included. Not case-sensitive. No spaces.">
+        <Field
+          label="Code"
+          required
+          error={errors.code}
+          hint="Unique in your company, archived routes included. Letters, numbers, spaces and hyphens; saved in capitals."
+        >
           {(id, describedBy) => (
             <input
               id={id}

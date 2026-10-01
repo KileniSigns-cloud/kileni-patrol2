@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Archive, Download, History, Map as MapIcon, Pencil, Plus, Trash2, Undo2 } from 'lucide-react';
+import { Archive, Download, FileUp, History, Map as MapIcon, Pencil, Plus, Trash2, Undo2 } from 'lucide-react';
 import { usePatrolStore } from '../store/patrol.store';
 import type { RouteWithStats } from '../lib/routesApi';
 import type { PatrolRoute } from '../types';
@@ -8,6 +8,8 @@ import { errorMessage } from '../lib/errors';
 import { plural } from '../lib/patrolHistory';
 import { buildRouteExportRows, routeExportFileName, toCsv } from '../lib/routeExport';
 import { routeDeleteDialog, type RouteDeleteCheck } from '../lib/routeDelete';
+import { stepLabels, stepsBadge } from '../lib/routeInfo';
+import { downloadText } from '../lib/download';
 import Screen from '../components/layout/Screen';
 import AdminHeader from '../components/admin/AdminHeader';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
@@ -19,14 +21,10 @@ type Tab = 'active' | 'archived';
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' });
 
-function downloadText(fileName: string, text: string, type: string) {
-  const url = URL.createObjectURL(new Blob([text], { type }));
-  const a = Object.assign(document.createElement('a'), { href: url, download: fileName });
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 0);
-}
+/** "N steps" or "No directions" beside the code (muted when there are none). */
+const StepsBadge: React.FC<{ steps: unknown }> = ({ steps }) => (
+  <span className={`badge ${stepLabels(steps).length === 0 ? '!bg-sf2 !text-mut' : ''}`}>{stepsBadge(steps)}</span>
+);
 
 const AdminRoutesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -161,7 +159,12 @@ const AdminRoutesPage: React.FC = () => {
       <AdminHeader
         title="Manage routes"
         sub="Create, archive and review patrol loops."
-        action={<button className="btn btn-pri btn-sm flex-none" onClick={openCreate}><Plus aria-hidden />New route</button>}
+        action={
+          <div className="flex gap-2 flex-none">
+            <button className="btn btn-sm" onClick={() => navigate('/admin/routes/import')}><FileUp aria-hidden />Import CSV</button>
+            <button className="btn btn-pri btn-sm" onClick={openCreate}><Plus aria-hidden />New route</button>
+          </div>
+        }
       />
 
       <div className="seg" role="tablist" aria-label="Route status">
@@ -195,7 +198,10 @@ const AdminRoutesPage: React.FC = () => {
             />
           ) : active.map((r) => (
             <div key={r.id} className="card">
-              <span className="badge">{r.code}</span>
+              <div className="flex flex-wrap gap-1.5">
+                <span className="badge">{r.code}</span>
+                <StepsBadge steps={r.steps} />
+              </div>
               <div className="row-name mt-1.5">{r.name}</div>
               {r.description && <div className="row-meta">{r.description}</div>}
               <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-2.5 text-mut text-sm">
@@ -224,7 +230,10 @@ const AdminRoutesPage: React.FC = () => {
         ) : archived.map((r) => (
           <div key={r.id} className="card">
             <div className="flex items-center justify-between gap-2">
-              <span className="badge">{r.code}</span>
+              <div className="flex flex-wrap gap-1.5">
+                <span className="badge">{r.code}</span>
+                <StepsBadge steps={r.steps} />
+              </div>
               {r.archived_at && <span className="row-meta">Archived {fmtDate(r.archived_at)}</span>}
             </div>
             <div className="row-name mt-1.5">{r.name}</div>

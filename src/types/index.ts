@@ -11,11 +11,13 @@ export interface PatrolRoute {
   organisation_id: string;
   name: string;
   code: string;
-  description: string;
-  area_type: string;
-  focus: string;
-  start_point: string;
-  hotspots: string[];
+  description: string | null;
+  area_type: string | null;
+  focus: string | null;
+  start_point: string | null;
+  hotspots: string[] | null;
+  /** Turn-by-turn, [{id, label}] (PATROL v1 and the CSV import). Read it through routeInfo.stepLabels. */
+  steps?: unknown;
   created_at: string;
   /** Set when an admin archives the route; archived routes are hidden from patrollers. */
   archived_at: string | null;

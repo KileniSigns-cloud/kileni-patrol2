@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { Navigate, useNavigate, useParams, useLocation } from 'react-router-dom';
-import { Plus, Square, Store, Zap } from 'lucide-react';
+import { Info, Plus, Square, Store, Zap } from 'lucide-react';
 import { usePatrolSession } from '../context/PatrolSessionContext';
 import { usePatrolStore } from '../store/patrol.store';
 import { supabase } from '../lib/supabase';
 import { countSessionPhotos } from '../lib/patrolApi';
 import { errorMessage } from '../lib/errors';
 import type { LoggedBusiness } from '../lib/signFlow';
+import type { RouteInfoData } from '../lib/routeInfo';
 import Screen from '../components/layout/Screen';
 import EmptyState from '../components/ui/EmptyState';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
+import RouteInfoSheet from '../components/route/RouteInfoSheet';
 import { toast } from '../components/ui/Toast';
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
@@ -22,14 +24,31 @@ const ActivePatrolPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const {
-    sessionId: liveSessionId, routeName, routeCode, sessionStartedAt,
+    sessionId: liveSessionId, routeId, routeName, routeCode, sessionStartedAt,
     loggedBusinesses, startSignAtBusiness, resetInspection, endSession,
   } = usePatrolSession();
-  const { clearActiveSession } = usePatrolStore();
+  const { clearActiveSession, getRouteInfo } = usePatrolStore();
   const [showConfirm, setShowConfirm] = useState(false);
   const [ending, setEnding] = useState(false);
   const [stats, setStats] = useState<{ businesses: number; signs: number; photos: number } | null>(null);
   const [statsError, setStatsError] = useState<string | null>(null);
+  // Route info sheet: read once when the page opens, so the sheet opens instantly.
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [routeInfo, setRouteInfo] = useState<RouteInfoData | null>(null);
+  const [routeInfoError, setRouteInfoError] = useState<string | null>(null);
+
+  const loadRouteInfo = useCallback(async () => {
+    if (!routeId) return;
+    setRouteInfoError(null);
+    try {
+      setRouteInfo(await getRouteInfo(routeId));
+    } catch (e) {
+      setRouteInfoError(errorMessage(e, 'Could not load route info.'));
+    }
+  }, [routeId, getRouteInfo]);
+
+  useEffect(() => { loadRouteInfo(); }, [loadRouteInfo]);
+  const closeInfo = useCallback(() => setInfoOpen(false), []);
 
   useEffect(() => {
     if (!sessionId || liveSessionId !== sessionId) return;
@@ -96,8 +115,15 @@ const ActivePatrolPage: React.FC = () => {
 
   return (
     <Screen nav>
-      <span className="badge">{routeCode ?? 'Route'}</span>
-      <h1>{routeName ?? 'Active patrol'}</h1>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <span className="badge">{routeCode ?? 'Route'}</span>
+          <h1>{routeName ?? 'Active patrol'}</h1>
+        </div>
+        <button className="btn btn-sm flex-none mt-1" onClick={() => setInfoOpen(true)} aria-haspopup="dialog">
+          <Info aria-hidden />Route info
+        </button>
+      </div>
       {sessionStartedAt && (
         <p className="sub">Started at {new Date(sessionStartedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</p>
       )}
@@ -140,6 +166,14 @@ const ActivePatrolPage: React.FC = () => {
       <button className="btn btn-dt btn-full mt-3" onClick={() => setShowConfirm(true)}>
         <Square aria-hidden />End patrol
       </button>
+
+      <RouteInfoSheet
+        open={infoOpen}
+        onClose={closeInfo}
+        route={routeInfo}
+        error={routeInfoError}
+        onRetry={loadRouteInfo}
+      />
 
       <ConfirmDialog
         open={showConfirm}

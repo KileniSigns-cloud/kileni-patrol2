@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase';
 import * as routesApi from '../lib/routesApi';
 import type { RouteFormValues } from '../lib/routeForm';
 import type { RouteDeleteCheck } from '../lib/routeDelete';
+import type { ImportPlan, ImportResponse, ImportRow } from '../lib/routeImport';
+import type { RouteInfoData } from '../lib/routeInfo';
 import type { PatrolRoute, User } from '../types';
 
 interface PatrolStore {
@@ -30,6 +32,10 @@ interface PatrolStore {
   checkRouteDelete: (routeId: string) => Promise<RouteDeleteCheck>;
   deleteRoute: (routeId: string) => Promise<RouteDeleteCheck>;
   getRouteExport: (routeId: string) => Promise<routesApi.RouteExportData>;
+  getRouteInfo: (routeId: string) => Promise<RouteInfoData>;
+  previewRouteImport: (rows: ImportRow[]) => Promise<ImportResponse>;
+  /** Applies a previewed import, then refreshes the patrollers' route list. */
+  applyRouteImport: (rows: ImportRow[], fingerprint: string) => Promise<ImportPlan>;
 }
 
 export const usePatrolStore = create<PatrolStore>()(
@@ -90,6 +96,8 @@ export const usePatrolStore = create<PatrolStore>()(
       getRouteHistory: (routeId, page) => routesApi.fetchRouteHistory(routeId, page),
       checkRouteDelete: (routeId) => routesApi.checkRouteDelete(routeId),
       getRouteExport: (routeId) => routesApi.fetchRouteExport(routeId),
+      getRouteInfo: (routeId) => routesApi.fetchRouteInfo(routeId),
+      previewRouteImport: (rows) => routesApi.previewRouteImport(rows),
 
       // Mutations refresh the patroller-facing route list so it never shows stale routes.
       createRoute: async (values) => {
@@ -104,6 +112,11 @@ export const usePatrolStore = create<PatrolStore>()(
       restoreRoute: async (routeId) => {
         await routesApi.restoreRoute(routeId);
         await get().loadRoutes();
+      },
+      applyRouteImport: async (rows, fingerprint) => {
+        const plan = await routesApi.applyRouteImport(rows, fingerprint);
+        await get().loadRoutes();
+        return plan;
       },
       deleteRoute: async (routeId) => {
         const result = await routesApi.deleteRouteIfUnused(routeId);

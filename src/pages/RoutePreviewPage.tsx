@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowRight, ChevronLeft, MapPin, Play } from 'lucide-react';
+import { ArrowRight, ChevronLeft, Play } from 'lucide-react';
 import { usePatrolStore } from '../store/patrol.store';
 import { usePatrolSession } from '../context/PatrolSessionContext';
 import { supabase } from '../lib/supabase';
@@ -8,6 +8,7 @@ import type { PatrolRoute } from '../types';
 import Screen from '../components/layout/Screen';
 import FlowFooter from '../components/flow/FlowFooter';
 import { LoadError } from '../components/ui/EmptyState';
+import RouteInfo from '../components/route/RouteInfo';
 
 const RoutePreviewPage: React.FC = () => {
   const { routeId } = useParams<{ routeId: string }>();
@@ -88,7 +89,6 @@ const RoutePreviewPage: React.FC = () => {
 
   const mine = liveSessionId !== null && liveRouteId === route.id;
   const busyElsewhere = liveSessionId !== null && !mine;
-  const hotspots = Array.isArray(route.hotspots) ? route.hotspots : [];
 
   return (
     <Screen
@@ -109,31 +109,7 @@ const RoutePreviewPage: React.FC = () => {
       }
     >
       <button className="linkb -ml-1" onClick={() => navigate('/routes')}><ChevronLeft aria-hidden />Routes</button>
-      <div><span className="badge">{route.code}</span></div>
-      <h1>{route.name}</h1>
-      {route.description && <p className="sub">{route.description}</p>}
-
-      <div className="grid grid-cols-1 min-[381px]:grid-cols-3 gap-2 my-4">
-        {([['Start point', route.start_point], ['Area', route.area_type], ['Focus', route.focus]] as const).map(([k, v]) => (
-          <div key={k} className="bg-sf border border-line rounded-[14px] px-3 py-2.5">
-            <small className="block text-mut text-[13px]">{k}</small>
-            <b className={`text-sm ${k === 'Area' ? 'capitalize' : ''}`}>{v || 'Not set'}</b>
-          </div>
-        ))}
-      </div>
-
-      <h2 className="section-title">Hotspots</h2>
-      {hotspots.length > 0 ? (
-        <ul className="list-none p-0 m-0 grid gap-2">
-          {hotspots.map((spot, i) => (
-            <li key={`${spot}-${i}`} className="flex gap-2.5 items-center bg-sf border border-line rounded-[14px] px-3.5 py-3 font-bold">
-              <MapPin className="w-5 h-5 text-acc flex-none" aria-hidden />{spot}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="sub">No hotspots on this route. Log any sign you spot along the way.</p>
-      )}
+      <RouteInfo route={route} titleAs="h1" showDescription />
     </Screen>
   );
 };

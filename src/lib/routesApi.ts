@@ -4,9 +4,11 @@
 
 import { supabase } from './supabase';
 import type { PatrolRoute } from '../types';
-import { formatDurationHHMM, isCodeTaken, toRouteInsert, type RouteFormValues } from './routeForm';
+import { formatDurationHHMM, isCodeTaken, normaliseCode, toRouteInsert, type RouteFormValues } from './routeForm';
 import type { RouteDeleteCheck } from './routeDelete';
 import type { ExportBusiness, ExportRoute, ExportSession } from './routeExport';
+import { serverIssues, type ImportPlan, type ImportResponse, type ImportRow, type RowIssue } from './routeImport';
+import type { RouteInfoData } from './routeInfo';
 
 export const HISTORY_PAGE_SIZE = 10;
 const STATS_DAYS = 30;
@@ -37,7 +39,7 @@ export interface RouteHistoryPage {
 
 export class DuplicateCodeError extends Error {
   constructor(code: string) {
-    super(`Code "${code.trim()}" is already used by another route.`);
+    super(`Code "${normaliseCode(code)}" is already used by another route.`);
     this.name = 'DuplicateCodeError';
   }
 }
@@ -254,4 +256,53 @@ export async function fetchRouteExport(routeId: string): Promise<RouteExportData
     sessions,
     routeBusinesses: (businesses ?? []) as unknown as ExportBusiness[],
   };
+}
+
+// ── Route info (Route info sheet on Active patrol) ──────────────────────────
+
+export async function fetchRouteInfo(routeId: string): Promise<RouteInfoData> {
+  const { data, error } = await supabase
+    .from('patrol_routes')
+    .select('code, name, area_type, start_point, focus, hotspots, steps')
+    .eq('id', routeId)
+    .single();
+  if (error) fail('Could not load route info', error);
+  return data as RouteInfoData;
+}
+
+// ── CSV import (migration 013) ──────────────────────────────────────────────
+
+/** import_routes refused the file. rowErrors holds its per-row list when it sent one. */
+export class RouteImportError extends Error {
+  rowErrors: RowIssue[];
+  constructor(message: string, rowErrors: RowIssue[]) {
+    super(message);
+    this.name = 'RouteImportError';
+    this.rowErrors = rowErrors;
+  }
+}
+
+function importFailure(error: { message: string; details?: string | null }): RouteImportError {
+  let rows: RowIssue[] = [];
+  try {
+    const parsed: unknown = JSON.parse(error.details ?? '');
+    if (Array.isArray(parsed)) rows = serverIssues(parsed);
+  } catch {
+    // details is not the row list (a different error); the message says enough.
+  }
+  return new RouteImportError(error.message, rows);
+}
+
+/** Dry run: what the import would do. Nothing is written. */
+export async function previewRouteImport(rows: ImportRow[]): Promise<ImportResponse> {
+  const { data, error } = await supabase.rpc('import_routes', { p_rows: rows, p_dry_run: true });
+  if (error) throw importFailure(error);
+  return data as ImportResponse;
+}
+
+/** Applies exactly what was previewed (same rows, same fingerprint), or changes nothing and throws. */
+export async function applyRouteImport(rows: ImportRow[], fingerprint: string): Promise<ImportPlan> {
+  const { data, error } = await supabase.rpc('import_routes', { p_rows: rows, p_dry_run: false, p_fingerprint: fingerprint });
+  if (error) throw importFailure(error);
+  return data as ImportPlan;
 }

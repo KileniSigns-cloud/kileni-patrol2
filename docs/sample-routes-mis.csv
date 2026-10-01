@@ -1,0 +1,30 @@
+﻿route_code,route_name,description,area_type,start_point,focus,hotspots,turn_by_turn
+Grid MIS-01,Lakeview Commercial & Marina Corridor,Eastern border patrol sweep covering high-traffic commercial strips along Lakeshore Road East and public waterfront access points leading to Lakefront Promenade.,"Commercial Retail Strips, Public Waterfront Parks, Marina Facilities, Mixed-Use Service Plazas.",Head West on Lakeshore Rd E at Dixie Rd (City of Toronto / Peel Boundary).,"Non-illuminated storefront signs, outdated or faded plaza pylon panels, weathered boat launch and marina signage, and high-visibility retail building face updates.","Waterfront Trail Parking Lots, Lakeshore East Commercial Strips, Haig Blvd Retail Pocket, Lakefront Promenade Park & Marina.","1. START: Head West on Lakeshore Rd E at Dixie Rd.
+2. Turn LEFT (South) onto Haig Blvd (Drive park access perimeter).
+3. Turn RIGHT (West) onto Lakefront Promenade (Loop marina parking facilities and public boat launches back to Lakeshore Rd E).
+4. Turn LEFT (West) onto Lakeshore Rd E.
+5. Turn RIGHT (North) onto Cawthra Rd.
+6. END / LOOP EXIT: North on Cawthra Rd to Atwater Ave."
+Grid MIS-02,Port Credit Core & Harbour District,"Central high-density commercial, entertainment, and transit hub characterized by high foot traffic, waterfront dining, and dense street-level retail frontage.","High-Density Retail Core, Entertainment District, Waterfront Promenade, Transit Corridor.",Head West on Lakeshore Rd E at Cawthra Rd.,"Channel letter outages, damaged blade signs, peeling window graphics, faded tenant directories on multi-tenant plazas, and illuminated fascia sign replacement leads.","Port Credit Harbour Village, Snug Harbour Waterfront Perimeter, Main Street Commercial Strip, Stavebank Rd Retail Arcades.","1. START: Head West on Lakeshore Rd E at Cawthra Rd.
+2. Turn LEFT (South) onto Stavebank Rd (Loop harbour & marina perimeter back to Lakeshore Rd W).
+3. Turn RIGHT (West) onto Lakeshore Rd W.
+4. Turn RIGHT (North) onto Hurontario St.
+5. Turn LEFT (West) onto Port St W.
+6. Turn RIGHT (North) onto Mississauga Rd.
+7. END / LOOP EXIT: North on Mississauga Rd to Lakeshore Rd W."
+Grid MIS-03,Lorne Park & Jack Darling Park Transition Zone,"Sub-arterial transition route linking central Port Credit to western commercial pockets, dominated by public park perimeters and neighborhood service plazas.","Public Park Perimeters, Neighborhood Shopping Plazas, Access Corridors.",Head West on Lakeshore Rd W at Mississauga Rd.,"Weathered neighborhood plaza monument signs, damaged awning lettering, non-illuminated store fascias, and commercial entrance sign refreshes.","Jack Darling Memorial Park Perimeter, Lorne Park Rd Service Plazas, Indian Rd Commercial Cluster, Public Lake Access Points.","1. START: Head West on Lakeshore Rd W at Mississauga Rd.
+2. Turn RIGHT (North) onto Lorne Park Rd (Loop plaza entries back to Lakeshore Rd W).
+3. Turn RIGHT (West) onto Lakeshore Rd W.
+4. Turn LEFT (South) into Jack Darling Park Main Entrance / Park Rd (Drive perimeter parking loop back to Lakeshore Rd W).
+5. Turn LEFT (West) onto Lakeshore Rd W.
+6. Turn RIGHT (North) onto Indian Rd.
+7. Turn LEFT (West) onto Truscott Dr.
+8. END / LOOP EXIT: West on Truscott Dr to Southdown Rd."
+Grid MIS-04,Clarkson Village & Southdown Industrial Belt,"Western boundary patrol route covering the Clarkson retail village core, heavy commercial strips along Southdown Road, and commercial logistics hubs near transit corridors.","Commercial Retail Core, Light Industrial Parks, Trade Logistics, Transit Hub Corridors.",Head South on Southdown Rd at Truscott Dr.,"Non-illuminated store fascias, weathered trade counter signs, damaged pylon panel faces, and high-visibility corporate wall logos for sign replacement/repair leads.","Clarkson Village Retail Core, Southdown Commercial Strip, Royal Windsor Commercial Belt, Clarkson GO Station Commercial Area.","1. START: Head South on Southdown Rd at Truscott Dr.
+2. Turn LEFT (East) onto Lakeshore Rd W (Drive Clarkson Village retail core).
+3. Turn RIGHT (South) onto Inverhouse Dr.
+4. Turn RIGHT (West) onto Bonnymede Dr.
+5. Turn RIGHT (North) onto Southdown Rd (Loops back up to Lakeshore Rd W).
+6. Turn LEFT (West) onto Royal Windsor Dr (Drive industrial/commercial building face belt).
+7. Turn LEFT (South) onto Winston Churchill Blvd.
+8. END / LOOP EXIT: South on Winston Churchill Blvd to Lakeshore Rd W (Town of Oakville Boundary)."
