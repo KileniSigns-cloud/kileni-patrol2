@@ -264,7 +264,8 @@ BEGIN
                              ELSE jsonb_build_object('name', a.name, 'address', a.address)
                         END ORDER BY a.n)
                  FROM pg_temp.zone_csv_anchor a WHERE a.row_no = i.row_no),
-    est_minutes = i.est_in::integer;
+    est_minutes = i.est_in::integer
+   WHERE i.row_no IS NOT NULL;
 
   IF EXISTS (SELECT 1 FROM pg_temp.zone_csv_import i
               WHERE (i.corners IS NOT NULL AND NOT public.patrol_zone_corners_ok(i.corners))
