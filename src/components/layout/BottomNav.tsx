@@ -5,13 +5,13 @@ import { usePatrolSession } from '../../context/PatrolSessionContext';
 import { isAdmin } from '../../lib/roles';
 
 const TABS = [
-  { path: '/routes', match: ['/routes', '/route/'], Icon: MapIcon, label: 'Routes' },
+  { path: '/routes', match: ['/routes', '/route/'], Icon: MapIcon, label: 'Zones' },
   { path: '/patrol', match: ['/patrol'], Icon: Footprints, label: 'Patrol' },
   { path: '/history', match: ['/history'], Icon: Clock3, label: 'History' },
   { path: '/admin/routes', match: ['/admin'], Icon: SlidersHorizontal, label: 'Admin', adminOnly: true },
 ];
 
-/** Routes / Patrol / History / Admin (admins only). A dot on Patrol while a session is live. */
+/** Zones / Patrol / History / Admin (admins only). A dot on Patrol while a session is live. */
 const BottomNav: React.FC = () => {
   const navigate = useNavigate();
   const { pathname } = useLocation();

@@ -69,10 +69,10 @@ const HistoryPage: React.FC = () => {
     return (
       <div key={s.id} className="card">
         <div className="flex items-center justify-between gap-2">
-          <span className="badge">{s.patrol_routes?.code ?? 'Route'}</span>
+          <span className="badge">{s.patrol_routes?.code ?? 'Zone'}</span>
           <span className="row-meta">{fmtWhen(s.started_at)}</span>
         </div>
-        <div className="row-name mt-1.5">{s.patrol_routes?.name ?? 'Unknown route'}</div>
+        <div className="row-name mt-1.5">{s.patrol_routes?.name ?? 'Unknown zone'}</div>
         <div className="row-meta">
           {s.patroller_name || 'Unknown patroller'},{' '}
           {status === 'finished'
@@ -147,7 +147,7 @@ const HistoryPage: React.FC = () => {
               icon={Clock3}
               title="No patrols yet"
               body="Patrols land here with their time, signs and photos once they're started."
-              action={{ label: 'Go to routes', onClick: () => navigate('/routes') }}
+              action={{ label: 'Go to zones', onClick: () => navigate('/routes') }}
             />
           )
         ) : catches.status === 'ok' && catches.rows.length ? catches.rows.map(catchCard) : (

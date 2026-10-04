@@ -8,7 +8,7 @@ import type { PatrolRoute } from '../types';
 import Screen from '../components/layout/Screen';
 import FlowFooter from '../components/flow/FlowFooter';
 import { LoadError } from '../components/ui/EmptyState';
-import RouteInfo from '../components/route/RouteInfo';
+import ZoneInfo from '../components/zone/ZoneInfo';
 
 const RoutePreviewPage: React.FC = () => {
   const { routeId } = useParams<{ routeId: string }>();
@@ -34,7 +34,7 @@ const RoutePreviewPage: React.FC = () => {
       .single()
       .then(({ data, error: err }) => {
         if (err || !data) {
-          setError('Route not found.');
+          setError('Zone not found.');
         } else {
           setRoute(data as PatrolRoute);
         }
@@ -81,8 +81,8 @@ const RoutePreviewPage: React.FC = () => {
   if (error || !route) {
     return (
       <Screen nav>
-        <button className="linkb -ml-1" onClick={() => navigate('/routes')}><ChevronLeft aria-hidden />Routes</button>
-        <LoadError message={error ?? 'Route not found.'} onRetry={() => setReload((n) => n + 1)} />
+        <button className="linkb -ml-1" onClick={() => navigate('/routes')}><ChevronLeft aria-hidden />Zones</button>
+        <LoadError message={error ?? 'Zone not found.'} onRetry={() => setReload((n) => n + 1)} />
       </Screen>
     );
   }
@@ -94,7 +94,7 @@ const RoutePreviewPage: React.FC = () => {
     <Screen
       footer={
         <FlowFooter
-          hint={busyElsewhere ? `You're patrolling ${liveRouteCode ?? 'another route'} right now. End that patrol first.` : startError}
+          hint={busyElsewhere ? `You're patrolling ${liveRouteCode ?? 'another zone'} right now. End that patrol first.` : startError}
         >
           <button
             className="btn btn-pri btn-xl btn-full"
@@ -108,8 +108,8 @@ const RoutePreviewPage: React.FC = () => {
         </FlowFooter>
       }
     >
-      <button className="linkb -ml-1" onClick={() => navigate('/routes')}><ChevronLeft aria-hidden />Routes</button>
-      <RouteInfo route={route} titleAs="h1" showDescription />
+      <button className="linkb -ml-1" onClick={() => navigate('/routes')}><ChevronLeft aria-hidden />Zones</button>
+      <ZoneInfo zone={route} titleAs="h1" />
     </Screen>
   );
 };

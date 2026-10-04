@@ -22,7 +22,8 @@ import PatrolTabPage from './pages/PatrolTabPage';
 import HistoryPage from './pages/HistoryPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminRoutesPage from './pages/AdminRoutesPage';
-import CreateRouteFormPage from './pages/CreateRouteFormPage';
+import ZoneFormPage from './pages/ZoneFormPage';
+import AdminZonePreviewPage from './pages/AdminZonePreviewPage';
 import RouteHistoryPage from './pages/RouteHistoryPage';
 import AdminRouteImportPage from './pages/AdminRouteImportPage';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -46,7 +47,9 @@ const AppLayout: React.FC<{ currentUser: User | null }> = ({ currentUser }) => (
     <Route path="/history" element={currentUser ? <HistoryPage /> : <Navigate to="/login" replace />} />
     <Route path="/admin" element={currentUser ? <AdminRedirect currentUser={currentUser} /> : <Navigate to="/login" replace />} />
     <Route path="/admin/routes" element={<ProtectedRoute adminOnly><AdminRoutesPage /></ProtectedRoute>} />
-    <Route path="/admin/routes/create" element={<ProtectedRoute adminOnly><CreateRouteFormPage /></ProtectedRoute>} />
+    <Route path="/admin/routes/create" element={<ProtectedRoute adminOnly><ZoneFormPage /></ProtectedRoute>} />
+    <Route path="/admin/routes/:routeId/edit" element={<ProtectedRoute adminOnly><ZoneFormPage /></ProtectedRoute>} />
+    <Route path="/admin/routes/:routeId/preview" element={<ProtectedRoute adminOnly><AdminZonePreviewPage /></ProtectedRoute>} />
     <Route path="/admin/routes/import" element={<ProtectedRoute adminOnly><AdminRouteImportPage /></ProtectedRoute>} />
     <Route path="/admin/routes/:routeId/history" element={<ProtectedRoute adminOnly><RouteHistoryPage /></ProtectedRoute>} />
     <Route path="/profile" element={currentUser ? <ProfilePage /> : <Navigate to="/login" replace />} />

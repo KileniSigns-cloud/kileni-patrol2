@@ -2,15 +2,15 @@ import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, Check, Copy, Download, FileUp } from 'lucide-react';
 import { usePatrolStore } from '../store/patrol.store';
-import { RouteImportError } from '../lib/routesApi';
+import { ZoneImportError } from '../lib/routesApi';
 import { errorMessage } from '../lib/errors';
 import { downloadText } from '../lib/download';
 import { plural } from '../lib/patrolHistory';
 import {
-  backupFileName, buildBackupCsv, FIELD_LABELS, fieldLines, IMPORT_COLUMNS, IMPORT_FIELDS, IMPORT_TEMPLATE, mergeIssues,
-  parseRouteCsv, serverIssues, wasBlank,
-  type ImportField, type ImportPlan, type ParsedImport, type PlanRoute, type RowIssue,
-} from '../lib/routeImport';
+  backupFileName, buildBackupCsv, FIELD_LABELS, fieldLines, IMPORT_FIELDS, IMPORT_TEMPLATE, LIST_FIELDS, mergeIssues,
+  parseZoneCsv, serverIssues, wasBlank,
+  type ImportPlan, type ParsedImport, type PlanZone, type RowIssue,
+} from '../lib/zoneImport';
 import Screen from '../components/layout/Screen';
 import AdminHeader from '../components/admin/AdminHeader';
 import FlowFooter from '../components/flow/FlowFooter';
@@ -18,20 +18,19 @@ import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { toast } from '../components/ui/Toast';
 
 const SHOWN_ISSUES = 50;
-const LIST_FIELDS = new Set<ImportField>(['hotspots', 'turn_by_turn']);
 
-/** "4 routes", "1 route". */
+/** "4 zones", "1 zone". */
 const count = (n: number, one: string) => `${n} ${plural(one, n)}`;
 
 const issueText = (i: RowIssue) => (i.row === null ? i.message : `Row ${i.row} · ${i.message}`);
 
 /**
  * Admin CSV import: choose a file, preview what changes (dry run, nothing written), download a
- * backup of the routes that will change, then confirm. Upsert by route code; nothing is deleted.
+ * backup of the zones that will change, then confirm. Upsert by zone code; nothing is deleted.
  */
 const AdminRouteImportPage: React.FC = () => {
   const navigate = useNavigate();
-  const { previewRouteImport, applyRouteImport } = usePatrolStore();
+  const { previewZoneImport, applyZoneImport } = usePatrolStore();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [fileName, setFileName] = useState<string | null>(null);
@@ -56,13 +55,13 @@ const AdminRouteImportPage: React.FC = () => {
     setFileName(file.name);
     setChecking(true);
     try {
-      const p = parseRouteCsv(await file.text(), file.size);
+      const p = parseZoneCsv(await file.text(), file.size);
       setParsed(p);
       let found = p.errors;
-      // The server checks what the browser can't (archived codes, names for new routes) and says
-      // NEW / UPDATE per route. Rows with browser errors are left out of that check.
+      // The server checks what the browser can't (which zones are new and need a name, area type
+      // and corners) and says NEW / UPDATE per zone. Rows with browser errors are left out of that check.
       if (p.rows.length > 0 && !p.errors.some((e) => e.row === null)) {
-        const res = await previewRouteImport(p.rows);
+        const res = await previewZoneImport(p.rows);
         if (res.status === 'invalid') found = mergeIssues(found, serverIssues(res.errors));
         else setPlan(res);
       }
@@ -86,11 +85,11 @@ const AdminRouteImportPage: React.FC = () => {
     setApplying(true);
     setApplyError(null);
     try {
-      const done = await applyRouteImport(parsed.rows, plan.fingerprint);
+      const done = await applyZoneImport(parsed.rows, plan.fingerprint);
       toast.success(`Imported: ${done.created} new, ${done.updated} updated`);
       navigate('/admin/routes');
     } catch (e) {
-      if (e instanceof RouteImportError && e.rowErrors.length > 0) setIssues(mergeIssues([], e.rowErrors));
+      if (e instanceof ZoneImportError && e.rowErrors.length > 0) setIssues(mergeIssues([], e.rowErrors));
       setApplyError(`Nothing was changed. ${errorMessage(e, 'Import failed.')}`);
       setConfirmOpen(false);
     } finally {
@@ -109,14 +108,14 @@ const AdminRouteImportPage: React.FC = () => {
 
   const changes = plan ? plan.created + plan.updated : 0;
   const blankFields = plan
-    ? plan.routes.reduce((n, r) => n + (r.action === 'update'
-      ? Object.entries(r.changes).filter(([f, c]) => c && wasBlank(f as ImportField, c)).length : 0), 0)
+    ? plan.zones.reduce((n, z) => n + (z.action === 'update'
+      ? IMPORT_FIELDS.filter((f) => z.changes[f] && wasBlank(f, z.changes[f]!)).length : 0), 0)
     : 0;
   const needsBackup = (plan?.updated ?? 0) > 0;
   const canConfirm = plan !== null && issues.length === 0 && changes > 0 && (!needsBackup || backedUp) && !applying;
   const hint = !plan ? null
     : issues.length > 0 ? 'Fix the problems above and upload the file again.'
-    : changes === 0 ? 'Nothing to import: every route already matches the file.'
+    : changes === 0 ? 'Nothing to import: every zone already matches the file.'
     : needsBackup && !backedUp ? 'Download the backup first.'
     : null;
 
@@ -126,15 +125,15 @@ const AdminRouteImportPage: React.FC = () => {
       footer={plan ? (
         <FlowFooter hint={hint}>
           <button className="btn btn-pri btn-xl btn-full" disabled={!canConfirm} onClick={() => setConfirmOpen(true)}>
-            <Check aria-hidden />Import {count(changes, 'route')}
+            <Check aria-hidden />Import {count(changes, 'zone')}
           </button>
         </FlowFooter>
       ) : undefined}
     >
       <AdminHeader
-        back={{ to: '/admin/routes', label: 'Manage routes' }}
-        title="Import routes"
-        sub="Create or update routes from a CSV file. Matched by route code; nothing is deleted."
+        back={{ to: '/admin/routes', label: 'Manage zones' }}
+        title="Import zones"
+        sub="Create or update zones from a CSV file. Matched by zone code; nothing is deleted."
       />
 
       <div className="card">
@@ -143,19 +142,21 @@ const AdminRouteImportPage: React.FC = () => {
           type="file"
           accept=".csv,text/csv"
           className="sr-only"
-          id="route-csv"
+          id="zone-csv"
           onChange={(e) => onFile(e.target.files?.[0])}
         />
-        <label htmlFor="route-csv" className={`btn btn-pri btn-full ${checking ? 'pointer-events-none opacity-60' : ''}`}>
+        <label htmlFor="zone-csv" className={`btn btn-pri btn-full ${checking ? 'pointer-events-none opacity-60' : ''}`}>
           {checking ? <><span className="spin" aria-hidden />Checking…</> : <><FileUp aria-hidden />{fileName ? 'Choose another file' : 'Choose CSV file'}</>}
         </label>
         {fileName && <p className="field-hint break-all">{fileName}</p>}
-        <button className="btn btn-sm btn-full mt-2.5" onClick={() => downloadText('route-import-template.csv', IMPORT_TEMPLATE, 'text/csv;charset=utf-8')}>
+        <button className="btn btn-sm btn-full mt-2.5" onClick={() => downloadText('zone-import-template.csv', IMPORT_TEMPLATE, 'text/csv;charset=utf-8')}>
           <Download aria-hidden />Download template
         </button>
         <p className="field-hint">
-          Columns: {IMPORT_COLUMNS.join(', ')}. Only route_code is required (route_name too for a new route).
-          Blank cells keep the current value. Turn-by-turn: one step per line in the cell.
+          One row per zone: zone_code, zone_name, area_type, corner1 to corner8 (intersections in order around the edge)
+          with corner1_gps to corner8_gps ("lat,lng", optional), anchors ("Name | Address", one per line or separated by ;),
+          focus, est_minutes, status (active or retired). A new zone needs a name, area type and at least 4 corners.
+          Blank cells keep the current value; filling any corner replaces all of the zone's corners.
         </p>
       </div>
 
@@ -164,7 +165,7 @@ const AdminRouteImportPage: React.FC = () => {
       {parsed && !checking && (
         <>
           <p className="mt-4 mb-2 font-bold" role="status">
-            {count(parsed.total, 'route')} in the file
+            {count(parsed.total, 'zone')} in the file
             {plan && <> · {plan.created} new · {plan.updated} {plan.updated === 1 ? 'update' : 'updates'} · {plan.unchanged} unchanged</>}
             {' · '}{count(issues.length, 'problem')}
           </p>
@@ -200,16 +201,16 @@ const AdminRouteImportPage: React.FC = () => {
                   <p className="text-mut mt-1 mb-3">
                     It's the only undo: the free plan has no database backups. Re-importing it puts changed values back.
                     It can't clear fields that were blank before{blankFields > 0 ? ` (${count(blankFields, 'field')} here)` : ''},
-                    or remove new routes: delete those on Manage routes.
+                    or remove new zones: delete those on Manage zones.
                   </p>
                   <button className={`btn btn-full ${backedUp ? '' : 'btn-pri'}`} onClick={downloadBackup}>
-                    {backedUp ? <><Check aria-hidden />Backup downloaded (download again)</> : <><Download aria-hidden />Download backup ({count(plan.updated, 'route')})</>}
+                    {backedUp ? <><Check aria-hidden />Backup downloaded (download again)</> : <><Download aria-hidden />Download backup ({count(plan.updated, 'zone')})</>}
                   </button>
                 </>
               ) : (
                 <p className="m-0 text-mut">
-                  Nothing to back up: {plan.created === 1 ? 'the route is' : `all ${plan.created} routes are`} new.
-                  To undo, delete {plan.created === 1 ? 'it' : 'them'} on Manage routes.
+                  Nothing to back up: {plan.created === 1 ? 'the zone is' : `all ${plan.created} zones are`} new.
+                  To undo, delete {plan.created === 1 ? 'it' : 'them'} on Manage zones.
                 </p>
               )}
             </div>
@@ -219,7 +220,7 @@ const AdminRouteImportPage: React.FC = () => {
 
           {plan && (
             <div className="grid gap-2.5 mt-3">
-              {plan.routes.map((r) => <PlanCard key={r.row} route={r} />)}
+              {plan.zones.map((z) => <PlanCard key={z.row} zone={z} />)}
             </div>
           )}
         </>
@@ -227,9 +228,9 @@ const AdminRouteImportPage: React.FC = () => {
 
       <ConfirmDialog
         open={confirmOpen}
-        title="Import routes?"
+        title="Import zones?"
         message={plan
-          ? `Create ${count(plan.created, 'route')} and update ${count(plan.updated, 'route')}? Patrollers see the changes right away.`
+          ? `Create ${count(plan.created, 'zone')} and update ${count(plan.updated, 'zone')}? Patrollers see the changes right away.`
           : ''}
         confirmLabel="Import"
         busy={applying}
@@ -242,51 +243,52 @@ const AdminRouteImportPage: React.FC = () => {
 
 const ACTION_LABEL = { new: 'NEW', update: 'UPDATE', unchanged: 'UNCHANGED' } as const;
 
-/** One route of the preview: everything a new route gets, or old -> new for each changed field. */
-const PlanCard: React.FC<{ route: PlanRoute }> = ({ route: r }) => {
-  const fields = IMPORT_FIELDS.filter((f) => r.changes[f]);
+/** One zone of the preview: everything a new zone gets, or old -> new for each changed field. */
+const PlanCard: React.FC<{ zone: PlanZone }> = ({ zone: z }) => {
+  const fields = IMPORT_FIELDS.filter((f) => z.changes[f]);
   return (
     <div className="card">
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className={`badge ${r.action === 'new' ? '' : r.action === 'update' ? '!bg-sf2 !text-tx' : '!bg-sf2 !text-mut'}`}>
-          {ACTION_LABEL[r.action]}
+        <span className={`badge ${z.action === 'new' ? '' : z.action === 'update' ? '!bg-sf2 !text-tx' : '!bg-sf2 !text-mut'}`}>
+          {ACTION_LABEL[z.action]}
         </span>
-        <span className="badge">{r.code}</span>
-        <span className="row-meta ml-auto">Row {r.row}</span>
+        <span className="badge">{z.code}</span>
+        <span className="row-meta ml-auto">Row {z.row}</span>
       </div>
-      {r.action === 'unchanged' ? (
+      {z.action === 'unchanged' ? (
         <p className="row-meta mt-2 mb-0">No changes: the file matches what is stored.</p>
       ) : (
         <dl className="mt-2 mb-0 grid gap-3">
           {fields.map((f) => {
-            const c = r.changes[f]!;
+            const c = z.changes[f]!;
             const now = fieldLines(f, c.old);
             const next = fieldLines(f, c.new);
+            const list = LIST_FIELDS.has(f);
             return (
               <div key={f}>
                 <dt className="text-mut text-[13px] font-bold">
                   {FIELD_LABELS[f]}
-                  {r.action === 'update' && wasBlank(f, c) && <span className="tag-opt ml-2">backup can't clear this</span>}
+                  {z.action === 'update' && wasBlank(f, c) && <span className="tag-opt ml-2">backup can't clear this</span>}
                 </dt>
                 <dd className="m-0">
-                  {r.action === 'new' ? (
-                    <Lines lines={next} list={LIST_FIELDS.has(f)} numbered={f === 'turn_by_turn'} />
-                  ) : LIST_FIELDS.has(f) ? (
+                  {z.action === 'new' ? (
+                    <Lines lines={next} list={list} numbered={f === 'corners'} />
+                  ) : list ? (
                     <div className="grid grid-cols-1 min-[481px]:grid-cols-2 gap-2 mt-1">
-                      <div><small className="text-mut">Now</small><Lines lines={now} list numbered={f === 'turn_by_turn'} muted /></div>
-                      <div><small className="text-mut">After import</small><Lines lines={next} list numbered={f === 'turn_by_turn'} /></div>
+                      <div><small className="text-mut">Now</small><Lines lines={now} list numbered={f === 'corners'} muted /></div>
+                      <div><small className="text-mut">After import</small><Lines lines={next} list numbered={f === 'corners'} /></div>
                     </div>
                   ) : (
                     <>
                       <span className="block text-mut line-through">{now[0] ?? '(blank)'}</span>
-                      <span className="block font-bold">{next[0]}</span>
+                      <span className="block font-bold whitespace-pre-line">{next[0]}</span>
                     </>
                   )}
                 </dd>
               </div>
             );
           })}
-          {r.action === 'update' && <p className="field-hint m-0">Blank cells keep the current value.</p>}
+          {z.action === 'update' && <p className="field-hint m-0">Blank cells keep the current value.</p>}
         </dl>
       )}
     </div>

@@ -2,10 +2,10 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabase';
 import * as routesApi from '../lib/routesApi';
-import type { RouteFormValues } from '../lib/routeForm';
+import type { ZoneRow } from '../lib/zoneForm';
 import type { RouteDeleteCheck } from '../lib/routeDelete';
-import type { ImportPlan, ImportResponse, ImportRow } from '../lib/routeImport';
-import type { RouteInfoData } from '../lib/routeInfo';
+import type { ImportPlan, ImportResponse, ImportRow } from '../lib/zoneImport';
+import type { ZoneInfoData } from '../lib/zoneInfo';
 import type { PatrolRoute, User } from '../types';
 
 interface PatrolStore {
@@ -22,20 +22,22 @@ interface PatrolStore {
   setActiveSession: (sessionId: string, routeId: string) => void;
   clearActiveSession: () => void;
   setPendingCount: (count: number) => void;
-  // Admin route management. Each throws an Error with a readable message on failure.
+  // Admin zone management (zones are patrol_routes rows). Each throws an Error with a readable message on failure.
   getActiveRoutes: () => Promise<routesApi.RouteWithStats[]>;
   getArchivedRoutes: () => Promise<PatrolRoute[]>;
-  createRoute: (values: RouteFormValues) => Promise<PatrolRoute>;
+  getZone: (routeId: string) => Promise<PatrolRoute>;
+  createZone: (row: ZoneRow) => Promise<PatrolRoute>;
+  updateZone: (routeId: string, row: ZoneRow) => Promise<PatrolRoute>;
   archiveRoute: (routeId: string) => Promise<void>;
   restoreRoute: (routeId: string) => Promise<void>;
   getRouteHistory: (routeId: string, page: number) => Promise<routesApi.RouteHistoryPage>;
   checkRouteDelete: (routeId: string) => Promise<RouteDeleteCheck>;
   deleteRoute: (routeId: string) => Promise<RouteDeleteCheck>;
   getRouteExport: (routeId: string) => Promise<routesApi.RouteExportData>;
-  getRouteInfo: (routeId: string) => Promise<RouteInfoData>;
-  previewRouteImport: (rows: ImportRow[]) => Promise<ImportResponse>;
-  /** Applies a previewed import, then refreshes the patrollers' route list. */
-  applyRouteImport: (rows: ImportRow[], fingerprint: string) => Promise<ImportPlan>;
+  getZoneInfo: (routeId: string) => Promise<ZoneInfoData>;
+  previewZoneImport: (rows: ImportRow[]) => Promise<ImportResponse>;
+  /** Applies a previewed import, then refreshes the patrollers' zone list. */
+  applyZoneImport: (rows: ImportRow[], fingerprint: string) => Promise<ImportPlan>;
 }
 
 export const usePatrolStore = create<PatrolStore>()(
@@ -96,14 +98,20 @@ export const usePatrolStore = create<PatrolStore>()(
       getRouteHistory: (routeId, page) => routesApi.fetchRouteHistory(routeId, page),
       checkRouteDelete: (routeId) => routesApi.checkRouteDelete(routeId),
       getRouteExport: (routeId) => routesApi.fetchRouteExport(routeId),
-      getRouteInfo: (routeId) => routesApi.fetchRouteInfo(routeId),
-      previewRouteImport: (rows) => routesApi.previewRouteImport(rows),
+      getZone: (routeId) => routesApi.fetchRoute(routeId),
+      getZoneInfo: (routeId) => routesApi.fetchZoneInfo(routeId),
+      previewZoneImport: (rows) => routesApi.previewZoneImport(rows),
 
       // Mutations refresh the patroller-facing route list so it never shows stale routes.
-      createRoute: async (values) => {
-        const route = await routesApi.createRoute(values);
+      createZone: async (row) => {
+        const zone = await routesApi.createZone(row);
         await get().loadRoutes();
-        return route;
+        return zone;
+      },
+      updateZone: async (routeId, row) => {
+        const zone = await routesApi.updateZone(routeId, row);
+        await get().loadRoutes();
+        return zone;
       },
       archiveRoute: async (routeId) => {
         await routesApi.archiveRoute(routeId);
@@ -113,8 +121,8 @@ export const usePatrolStore = create<PatrolStore>()(
         await routesApi.restoreRoute(routeId);
         await get().loadRoutes();
       },
-      applyRouteImport: async (rows, fingerprint) => {
-        const plan = await routesApi.applyRouteImport(rows, fingerprint);
+      applyZoneImport: async (rows, fingerprint) => {
+        const plan = await routesApi.applyZoneImport(rows, fingerprint);
         await get().loadRoutes();
         return plan;
       },

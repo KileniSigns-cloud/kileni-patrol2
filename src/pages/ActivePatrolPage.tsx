@@ -7,11 +7,11 @@ import { supabase } from '../lib/supabase';
 import { countSessionPhotos } from '../lib/patrolApi';
 import { errorMessage } from '../lib/errors';
 import type { LoggedBusiness } from '../lib/signFlow';
-import type { RouteInfoData } from '../lib/routeInfo';
+import type { ZoneInfoData } from '../lib/zoneInfo';
 import Screen from '../components/layout/Screen';
 import EmptyState from '../components/ui/EmptyState';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
-import RouteInfoSheet from '../components/route/RouteInfoSheet';
+import ZoneInfoSheet from '../components/zone/ZoneInfoSheet';
 import { toast } from '../components/ui/Toast';
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
@@ -27,27 +27,27 @@ const ActivePatrolPage: React.FC = () => {
     sessionId: liveSessionId, routeId, routeName, routeCode, sessionStartedAt,
     loggedBusinesses, startSignAtBusiness, resetInspection, endSession,
   } = usePatrolSession();
-  const { clearActiveSession, getRouteInfo } = usePatrolStore();
+  const { clearActiveSession, getZoneInfo } = usePatrolStore();
   const [showConfirm, setShowConfirm] = useState(false);
   const [ending, setEnding] = useState(false);
   const [stats, setStats] = useState<{ businesses: number; signs: number; photos: number } | null>(null);
   const [statsError, setStatsError] = useState<string | null>(null);
-  // Route info sheet: read once when the page opens, so the sheet opens instantly.
+  // Zone info sheet: read once when the page opens, so the sheet opens instantly.
   const [infoOpen, setInfoOpen] = useState(false);
-  const [routeInfo, setRouteInfo] = useState<RouteInfoData | null>(null);
-  const [routeInfoError, setRouteInfoError] = useState<string | null>(null);
+  const [zoneInfo, setZoneInfo] = useState<ZoneInfoData | null>(null);
+  const [zoneInfoError, setZoneInfoError] = useState<string | null>(null);
 
-  const loadRouteInfo = useCallback(async () => {
+  const loadZoneInfo = useCallback(async () => {
     if (!routeId) return;
-    setRouteInfoError(null);
+    setZoneInfoError(null);
     try {
-      setRouteInfo(await getRouteInfo(routeId));
+      setZoneInfo(await getZoneInfo(routeId));
     } catch (e) {
-      setRouteInfoError(errorMessage(e, 'Could not load route info.'));
+      setZoneInfoError(errorMessage(e, 'Could not load zone info.'));
     }
-  }, [routeId, getRouteInfo]);
+  }, [routeId, getZoneInfo]);
 
-  useEffect(() => { loadRouteInfo(); }, [loadRouteInfo]);
+  useEffect(() => { loadZoneInfo(); }, [loadZoneInfo]);
   const closeInfo = useCallback(() => setInfoOpen(false), []);
 
   useEffect(() => {
@@ -117,11 +117,11 @@ const ActivePatrolPage: React.FC = () => {
     <Screen nav>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <span className="badge">{routeCode ?? 'Route'}</span>
+          <span className="badge">{routeCode ?? 'Zone'}</span>
           <h1>{routeName ?? 'Active patrol'}</h1>
         </div>
-        <button className="btn btn-sm flex-none mt-1" onClick={() => setInfoOpen(true)} aria-haspopup="dialog">
-          <Info aria-hidden />Route info
+        <button className="btn btn-lg flex-none mt-1" onClick={() => setInfoOpen(true)} aria-haspopup="dialog">
+          <Info aria-hidden />Zone info
         </button>
       </div>
       {sessionStartedAt && (
@@ -167,12 +167,12 @@ const ActivePatrolPage: React.FC = () => {
         <Square aria-hidden />End patrol
       </button>
 
-      <RouteInfoSheet
+      <ZoneInfoSheet
         open={infoOpen}
         onClose={closeInfo}
-        route={routeInfo}
-        error={routeInfoError}
-        onRetry={loadRouteInfo}
+        zone={zoneInfo}
+        error={zoneInfoError}
+        onRetry={loadZoneInfo}
       />
 
       <ConfirmDialog

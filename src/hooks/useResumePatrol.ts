@@ -38,7 +38,7 @@ export function useResumePatrol(enabled: boolean) {
   useEffect(() => { if (enabled) check(); }, [enabled, check]);
 
   const resume = useCallback(async (s: Pick<ResumableSession, 'id' | 'route_id' | 'started_at' | 'patrol_routes'>) => {
-    startSession(s.id, s.route_id, s.patrol_routes?.name ?? 'Route', {
+    startSession(s.id, s.route_id, s.patrol_routes?.name ?? 'Zone', {
       routeCode: s.patrol_routes?.code ?? null,
       startedAt: s.started_at,
     });
