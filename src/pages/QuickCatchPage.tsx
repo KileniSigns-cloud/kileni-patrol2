@@ -5,6 +5,7 @@ import { useCamera } from '../hooks/useCamera';
 import { supabase } from '../lib/supabase';
 import { buildInspectionPhotoRows, compressToBlob, uploadPhotos } from '../lib/photoStorage';
 import { errorMessage } from '../lib/errors';
+import { ISSUES, issueTypeText, issuesForAttempt, toggleIssue } from '../lib/issues';
 import {
   createSubmitGate, gpsErrorText, isApproximate, isFromForm, quickCatchLocationCheck, resolveSubmitFix, secondsLeft,
   type Fix,
@@ -29,28 +30,17 @@ const SIGN_TYPES: Record<SignCategory, string[]> = {
   ],
 };
 
-const ISSUE_TYPES = [
-  'Damaged / Impact damage',
-  'Loose / Structurally unsafe',
-  'Falling / Leaning',
-  'Partially lit',
-  'Fully dark / Not illuminated',
-  'Peeling graphics',
-  'Faded / Sun bleached',
-  'Missing letters or elements',
-  'Other',
-];
-
 const QuickCatchPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useFreshLocation();
   const camera = useCamera();
   const { currentUser } = usePatrolStore();
-  // Ids, upload paths and location of a submit whose inspection record is saved but that
-  // failed later. A retry reuses the same location, so it never moves the lead.
+  // Ids, upload paths, location and issues of a submit whose inspection record is saved but
+  // that failed later. A retry reuses the same location, so it never moves the lead, and the
+  // same issues, so the lead matches the record.
   const progress = useRef<{
     leadId: string; inspectionId: string; paths: string[] | null; stubSaved: boolean; photosSaved: boolean;
-    fix: Fix | null;
+    fix: Fix | null; issues: string[];
   } | null>(null);
   // Readings from before this form started belong to the previous catch (see gpsFix.ts).
   const formStartedAt = useRef(Date.now());
@@ -62,7 +52,9 @@ const QuickCatchPage: React.FC = () => {
   const [address, setAddress] = useState('');
   const [signCategory, setSignCategory] = useState<SignCategory>('Illuminated');
   const [signType, setSignType] = useState('');
-  const [issueType, setIssueType] = useState('');
+  const [issues, setIssues] = useState<string[]>([]);
+  // The inspection record is saved with the ticked issues: they can't change until the catch is finished.
+  const [issuesLocked, setIssuesLocked] = useState(false);
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -93,6 +85,9 @@ const QuickCatchPage: React.FC = () => {
     if (camera.files.length === 0) { setError('At least one photo is required.'); return; }
     const orgId = currentUser?.organisation_id;
     if (!orgId) { setError('You are signed out or have no organisation. Sign in again to save.'); return; }
+    // Only issues from the fixed list are ever saved (see lib/issues.ts).
+    const checked = issuesForAttempt(progress.current?.issues ?? null, issues);
+    if (!checked.ok) { setError(checked.error); return; }
     setSaving(true);
 
     // Every step is required and stops the save with its error. Once the inspection
@@ -117,7 +112,10 @@ const QuickCatchPage: React.FC = () => {
         return;
       }
       setSavedWarning(check.warning);
-      p = { leadId: crypto.randomUUID(), inspectionId: crypto.randomUUID(), paths: null, stubSaved: false, photosSaved: false, fix };
+      p = {
+        leadId: crypto.randomUUID(), inspectionId: crypto.randomUUID(), paths: null, stubSaved: false, photosSaved: false,
+        fix, issues: checked.issues,
+      };
     }
     try {
       // STEP A: upload photos to patrol-media/{org}/quick-catch/{lead_id}/ (awaited).
@@ -141,10 +139,10 @@ const QuickCatchPage: React.FC = () => {
             sign_category: signCategory,
             sign_type: signType || null,
             patrol_type: 'quick_catch',
-            condition: issueType ? [issueType] : [],
-            condition_rating: issueType ? 'fair' : 'excellent',
-            is_compliant: !issueType,
-            non_compliance_reason: issueType || null,
+            condition: p.issues,
+            condition_rating: p.issues.length > 0 ? 'fair' : 'excellent',
+            is_compliant: p.issues.length === 0,
+            non_compliance_reason: issueTypeText(p.issues),
             notes: notes.trim() || null,
             status: 'completed',
             inspected_at: nowIso,
@@ -155,6 +153,7 @@ const QuickCatchPage: React.FC = () => {
         if (inspErr) throw new Error(`Quick Catch not saved: ${errorMessage(inspErr, 'inspection record failed')}`);
         p.stubSaved = true;
         progress.current = p;
+        setIssuesLocked(true);
       }
 
       // STEP C: inspection_photos with storage paths (required).
@@ -177,7 +176,7 @@ const QuickCatchPage: React.FC = () => {
         gps_accuracy_m: p.fix?.accuracy ?? null,
         sign_category: signCategory,
         sign_type: signType || null,
-        issue_type: issueType || null,
+        issue_type: issueTypeText(p.issues),
         notes: notes.trim() || null,
         photos: p.paths,
         status: 'new',
@@ -209,7 +208,8 @@ const QuickCatchPage: React.FC = () => {
     setAddress('');
     setSignCategory('Illuminated');
     setSignType('');
-    setIssueType('');
+    setIssues([]);
+    setIssuesLocked(false);
     setNotes('');
     setError(null);
     setSaved(false);
@@ -353,22 +353,20 @@ const QuickCatchPage: React.FC = () => {
         ))}
       </div>
 
-      <h2 className="section-title">Issue <span className="tag-opt">Pick one</span></h2>
-      <div className="grid gap-2.5" role="radiogroup" aria-label="Issue">
-        {ISSUE_TYPES.map(it => (
-          <button
-            key={it}
-            type="button"
-            role="radio"
-            aria-checked={issueType === it}
-            className={`chk text-left ${issueType === it ? '!border-acc !bg-accs' : ''}`}
-            onClick={() => setIssueType(prev => prev === it ? '' : it)}
-          >
-            <span className="box" style={issueType === it ? { background: 'var(--acc)', borderColor: 'var(--acc)', color: '#fff' } : undefined}>
-              <Check aria-hidden />
-            </span>
-            {it}
-          </button>
+      <h2 className="section-title">Issues <span className="tag-opt">Tick all that apply</span></h2>
+      {issuesLocked && <p className="field-hint">Saved with this catch. Tap Log Quick Catch to finish saving it.</p>}
+      <div className="grid gap-2.5" role="group" aria-label="Issues">
+        {ISSUES.map(issue => (
+          <label key={issue} className={`chk ${issuesLocked ? 'opacity-60' : ''}`}>
+            <input
+              type="checkbox"
+              checked={issues.includes(issue)}
+              disabled={issuesLocked}
+              onChange={() => setIssues(prev => toggleIssue(prev, issue))}
+            />
+            <span className="box"><Check aria-hidden /></span>
+            {issue}
+          </label>
         ))}
       </div>
 

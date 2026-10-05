@@ -7,22 +7,11 @@ import { supabase } from '../lib/supabase';
 import { buildSignInspectionInsert } from '../lib/signFlow';
 import { buildInspectionPhotoRows } from '../lib/photoStorage';
 import { errorMessage } from '../lib/errors';
+import { ISSUES, toggleIssue } from '../lib/issues';
 import Screen from '../components/layout/Screen';
 import StepProgress from '../components/flow/StepProgress';
 import FlowFooter, { FooterRow } from '../components/flow/FlowFooter';
 import NoSession from '../components/flow/NoSession';
-
-const ISSUES = [
-  'Damaged / Impact damage',
-  'Loose / Structurally unsafe',
-  'Falling / Leaning',
-  'Partially lit',
-  'Fully dark / Not illuminated',
-  'Peeling graphics',
-  'Faded / Sun bleached',
-  'Missing letters or elements',
-  'Other',
-];
 
 const IssuesPage: React.FC = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -46,9 +35,7 @@ const IssuesPage: React.FC = () => {
   if (!ctxSessionId) return <NoSession />;
 
   const toggle = (issue: string) => {
-    const next = selected.includes(issue)
-      ? selected.filter(i => i !== issue)
-      : [...selected, issue];
+    const next = toggleIssue(selected, issue);
     setSelected(next);
     setIssues(next);
   };
