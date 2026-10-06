@@ -24,7 +24,7 @@ Rules:
 
 ## 11. Multi-tenancy
 BUILT is multi-tenant. Many sign companies share the database. For every new table, query, and policy confirm:
-- Is the row scoped to a company/tenant?
+- Is the row scoped to an organisation/tenant?
 - Can Company A ever read or write Company B's data?
 - Are catalog items, pricing rules, templates, overhead values tenant-owned, not global?
 
@@ -41,7 +41,7 @@ Never write a feature that only works because one company exists. Keep seed/demo
 ## 13. Data integrity
 - Foreign keys and constraints, not application code alone.
 - Soft deletes for anything referenced by a quote, job, or invoice.
-- `created_at`, `updated_at`, `company_id`, `created_by` on every business table.
+- `created_at`, `updated_at`, `organisation_id`, `created_by` on every business table.
 - Migrations additive and reversible where possible. Never drop/rename a column in use without a stated migration plan.
 
 ## 14. Error handling
