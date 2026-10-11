@@ -35,12 +35,12 @@ export function routeDeleteDialog(
   if (check.status !== 'in_use') {
     return {
       title: `Delete ${label}?`,
-      message: 'No patrols, businesses or sign records use this route. Deleting it removes it for good and can\'t be undone.',
+      message: 'No patrols, businesses or sign records use this zone. Deleting it removes it for good and can\'t be undone.',
       action: 'delete',
     };
   }
   const why = `${label} has ${describeRouteUse(check)}, so it can't be deleted: deleting it would delete that history too.`;
   return route.archived_at
-    ? { title: `${label} can't be deleted`, message: `${why} It's already archived, so patrollers don't see it and its history stays viewable.`, action: 'none' }
-    : { title: `${label} can't be deleted`, message: `${why} Archive it instead: patrollers stop seeing it, its history stays, and you can restore it anytime.`, action: 'archive' };
+    ? { title: `${label} can't be deleted`, message: `${why} It's already retired, so patrollers don't see it and its history stays viewable.`, action: 'none' }
+    : { title: `${label} can't be deleted`, message: `${why} Retire it instead: patrollers stop seeing it, its history stays, and you can restore it anytime.`, action: 'archive' };
 }

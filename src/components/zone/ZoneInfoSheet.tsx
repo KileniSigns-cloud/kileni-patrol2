@@ -1,14 +1,14 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { X } from 'lucide-react';
-import type { RouteInfoData } from '../../lib/routeInfo';
-import RouteInfo from './RouteInfo';
+import type { ZoneInfoData } from '../../lib/zoneInfo';
+import ZoneInfo from './ZoneInfo';
 import { LoadError } from '../ui/EmptyState';
 
-interface RouteInfoSheetProps {
+interface ZoneInfoSheetProps {
   open: boolean;
   onClose: () => void;
   /** null while loading. */
-  route: RouteInfoData | null;
+  zone: ZoneInfoData | null;
   error: string | null;
   onRetry: () => void;
 }
@@ -18,11 +18,12 @@ const CLOSE_DISTANCE = 80;
 const CLOSE_VELOCITY = 0.5; // px per ms
 
 /**
- * Bottom sheet with the route's info in large type. Closes on swipe down (from the handle, or
+ * Bottom sheet with the zone's info in large type. Closes on swipe down (from the handle, or
  * anywhere while the content is scrolled to the top), Close, Esc, or a tap on the backdrop.
- * Read-only: opening it changes nothing in the patrol.
+ * Swiping is never required: Close is a full-size button. Read-only: opening it changes
+ * nothing in the patrol.
  */
-const RouteInfoSheet: React.FC<RouteInfoSheetProps> = ({ open, onClose, route, error, onRetry }) => {
+const ZoneInfoSheet: React.FC<ZoneInfoSheetProps> = ({ open, onClose, zone, error, onRetry }) => {
   const titleId = useId();
   const closeRef = useRef<HTMLButtonElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -96,8 +97,8 @@ const RouteInfoSheet: React.FC<RouteInfoSheetProps> = ({ open, onClose, route, e
         >
           <div className="mx-auto w-10 h-1.5 rounded-full bg-line" aria-hidden />
           <div className="flex items-center justify-between gap-3 mt-2">
-            <h2 id={titleId} className="m-0 text-xl font-extrabold">Route info</h2>
-            <button ref={closeRef} type="button" className="btn btn-sm flex-none" onClick={onClose}>
+            <h2 id={titleId} className="m-0 text-[22px] font-extrabold">Zone info</h2>
+            <button ref={closeRef} type="button" className="btn btn-lg flex-none" onClick={onClose}>
               <X aria-hidden />Close
             </button>
           </div>
@@ -109,8 +110,8 @@ const RouteInfoSheet: React.FC<RouteInfoSheetProps> = ({ open, onClose, route, e
         >
           {error ? (
             <LoadError message={error} onRetry={onRetry} />
-          ) : route ? (
-            <RouteInfo route={route} large titleAs="h3" />
+          ) : zone ? (
+            <ZoneInfo zone={zone} large titleAs="h3" />
           ) : (
             <div aria-busy="true">
               <div className="skeleton h-8 w-24" />
@@ -124,4 +125,4 @@ const RouteInfoSheet: React.FC<RouteInfoSheetProps> = ({ open, onClose, route, e
   );
 };
 
-export default RouteInfoSheet;
+export default ZoneInfoSheet;

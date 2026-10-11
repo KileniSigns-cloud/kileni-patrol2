@@ -176,26 +176,26 @@ import { describeRouteUse, routeDeleteDialog } from '../src/lib/routeDelete.ts';
 
 const activeRoute = { code: 'AUR-01', name: 'Aurora loop', archived_at: null };
 
-test('an unused route offers a permanent delete', () => {
+test('an unused zone offers a permanent delete', () => {
   const d = routeDeleteDialog(activeRoute, { status: 'deletable', sessions: 0, businesses: 0, signs: 0 });
   assert.equal(d.action, 'delete');
   assert.equal(d.title, 'Delete AUR-01?');
   assert.match(d.message, /can't be undone/);
 });
 
-test('a route with data explains why and offers Archive instead', () => {
+test('a zone with data explains why and offers Retire instead', () => {
   const d = routeDeleteDialog(activeRoute, { status: 'in_use', sessions: 31, businesses: 3, signs: 5 });
   assert.equal(d.action, 'archive');
   assert.equal(d.title, "AUR-01 can't be deleted");
   assert.match(d.message, /^AUR-01 has 31 patrols, 3 businesses and 5 sign records, so it can't be deleted/);
-  assert.match(d.message, /Archive it instead/);
+  assert.match(d.message, /Retire it instead/);
 });
 
-test('an archived route with data only explains (nothing to confirm)', () => {
+test('a retired zone with data only explains (nothing to confirm)', () => {
   const d = routeDeleteDialog({ ...activeRoute, archived_at: '2026-09-20T10:00:00' }, { status: 'in_use', sessions: 1, businesses: 0, signs: 0 });
   assert.equal(d.action, 'none');
   assert.match(d.message, /has 1 patrol, so/);
-  assert.match(d.message, /already archived/);
+  assert.match(d.message, /already retired/);
 });
 
 test('usage text lists only non-zero counts with correct plurals', () => {

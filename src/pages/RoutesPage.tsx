@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { fetchLastPatrolled } from '../lib/patrolApi';
 import { getOrgId } from '../lib/routesApi';
 import { lastPatrolLabel } from '../lib/patrolHistory';
+import { cornersBadge } from '../lib/zoneInfo';
 import { errorMessage } from '../lib/errors';
 import type { PatrolRoute } from '../types';
 import Screen from '../components/layout/Screen';
@@ -24,7 +25,7 @@ const RoutesPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      // Archived routes are hidden from patrollers; admins manage them under /admin/routes.
+      // Retired zones are hidden from patrollers; admins manage them under /admin/routes.
       const { data, error } = await supabase
         .from('patrol_routes')
         .select('*')
@@ -33,7 +34,7 @@ const RoutesPage: React.FC = () => {
       if (error) throw error;
       setRoutes((data || []) as PatrolRoute[]);
     } catch (err) {
-      setError(errorMessage(err, 'Failed to load routes'));
+      setError(errorMessage(err, 'Failed to load zones'));
     } finally {
       setLoading(false);
     }
@@ -58,15 +59,14 @@ const RoutesPage: React.FC = () => {
   const now = Date.now();
 
   const meta = (r: PatrolRoute) => {
-    const n = Array.isArray(r.hotspots) ? r.hotspots.length : 0;
-    const hot = `${n} hotspot${n === 1 ? '' : 's'}`;
-    return lastPatrol ? `${hot}, ${lastPatrolLabel(lastPatrol.get(r.id) ?? null, now)}` : hot;
+    const corners = cornersBadge(r.corners);
+    return lastPatrol ? `${corners}, ${lastPatrolLabel(lastPatrol.get(r.id) ?? null, now)}` : corners;
   };
 
   return (
     <Screen nav>
-      <h1>Routes</h1>
-      <p className="sub">Pick a loop to start patrolling.</p>
+      <h1>Zones</h1>
+      <p className="sub">Pick a zone to start patrolling.</p>
 
       <div className="relative mb-4">
         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-mut" aria-hidden />
@@ -74,7 +74,7 @@ const RoutesPage: React.FC = () => {
           type="search"
           className="input pl-11"
           placeholder="Search by name or code"
-          aria-label="Search routes"
+          aria-label="Search zones"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -101,15 +101,15 @@ const RoutesPage: React.FC = () => {
           ))}
         </div>
       ) : q ? (
-        <EmptyState icon={SearchX} title="No routes match" body={`Nothing matches "${search.trim()}". Try a code like DT-01.`} />
+        <EmptyState icon={SearchX} title="No zones match" body={`Nothing matches "${search.trim()}". Try a code like DT-01.`} />
       ) : (
-        <EmptyState icon={MapIcon} title="No routes yet" body="An admin adds routes from the Admin tab. They show up here for everyone." />
+        <EmptyState icon={MapIcon} title="No zones yet" body="An admin adds zones from the Admin tab. They show up here for everyone." />
       )}
 
       <button className="btn btn-lg btn-full mt-6" onClick={() => navigate('/quick-catch')}>
         <Zap aria-hidden />Quick Catch
       </button>
-      <p className="field-hint text-center">Spotted a sign off-route? Log it without starting a patrol.</p>
+      <p className="field-hint text-center">Spotted a sign outside a zone? Log it without starting a patrol.</p>
     </Screen>
   );
 };

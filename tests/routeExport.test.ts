@@ -175,8 +175,8 @@ test('the CSV has a BOM, a header row matching the columns, and CRLF lines', () 
   assert.equal(lines[2], '');
 });
 
-test('file name: route code made safe, Toronto date', () => {
-  assert.equal(routeExportFileName('AUR-01', '2026-09-28T16:30:00Z'), 'route-AUR-01-2026-09-28.csv');
-  assert.equal(routeExportFileName('GRID REX-01', '2026-09-29T02:00:00Z'), 'route-GRID-REX-01-2026-09-28.csv');
-  assert.equal(routeExportFileName(null, '2026-09-28T16:30:00Z'), 'route-route-2026-09-28.csv');
+test('file name: zone code made safe, Toronto date', () => {
+  assert.equal(routeExportFileName('AUR-01', '2026-09-28T16:30:00Z'), 'zone-AUR-01-2026-09-28.csv');
+  assert.equal(routeExportFileName('GRID REX-01', '2026-09-29T02:00:00Z'), 'zone-GRID-REX-01-2026-09-28.csv');
+  assert.equal(routeExportFileName(null, '2026-09-28T16:30:00Z'), 'zone-zone-2026-09-28.csv');
 });

@@ -8,6 +8,7 @@ import { errorMessage } from '../lib/errors';
 import Screen from '../components/layout/Screen';
 import AdminHeader from '../components/admin/AdminHeader';
 import EmptyState, { LoadError } from '../components/ui/EmptyState';
+import { cornerList, estLabel, gpsText } from '../lib/zoneInfo';
 
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
 const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
@@ -31,7 +32,7 @@ const RouteHistoryPage: React.FC = () => {
     setRouteError(null);
     fetchRoute(routeId)
       .then((r) => { if (live) setRoute(r); })
-      .catch((e) => { if (live) setRouteError(errorMessage(e, 'Could not load route details.')); });
+      .catch((e) => { if (live) setRouteError(errorMessage(e, 'Could not load zone details.')); });
     return () => { live = false; };
   }, [routeId]);
 
@@ -56,9 +57,9 @@ const RouteHistoryPage: React.FC = () => {
   return (
     <Screen nav>
       <AdminHeader
-        back={{ to: route?.archived_at ? '/admin/routes?tab=archived' : '/admin/routes', label: 'Manage routes' }}
+        back={{ to: route?.archived_at ? '/admin/routes?tab=retired' : '/admin/routes', label: 'Manage zones' }}
         badge={route?.code}
-        title={route?.name ?? 'Route'}
+        title={route?.name ?? 'Zone'}
         sub="Patrol history"
       />
       {routeError && <p className="field-err mt-0 mb-3" role="alert">{routeError}</p>}
@@ -67,7 +68,7 @@ const RouteHistoryPage: React.FC = () => {
       {error ? (
         <LoadError message={error} onRetry={load} />
       ) : !loading && total === 0 ? (
-        <EmptyState icon={Footprints} title="No patrols yet" body="Patrols appear here once someone starts this route from the Routes list." />
+        <EmptyState icon={Footprints} title="No patrols yet" body="Patrols appear here once someone starts this zone from the Zones list." />
       ) : (
         <>
           <div className="overflow-x-auto border border-line rounded-2xl bg-sf" aria-busy={loading}>
@@ -114,27 +115,26 @@ const RouteHistoryPage: React.FC = () => {
   );
 };
 
-/** Route metadata shown above the history table. */
+/** Zone details shown above the history table. */
 const RouteDetails: React.FC<{ route: PatrolRoute }> = ({ route }) => {
-  const hotspots = Array.isArray(route.hotspots) ? route.hotspots : [];
+  const corners = cornerList(route.corners);
   return (
-    <section className="mb-6" aria-label="Route details">
+    <section className="mb-6" aria-label="Zone details">
       {route.archived_at && (
-        <p className="badge mb-3">Archived {new Date(route.archived_at).toLocaleDateString()}</p>
+        <p className="badge mb-3">Retired {new Date(route.archived_at).toLocaleDateString()}</p>
       )}
-      {route.description && <p className="sub">{route.description}</p>}
       <div className="grid grid-cols-1 min-[381px]:grid-cols-3 gap-2">
-        {([['Area type', route.area_type], ['Focus', route.focus], ['Start point', route.start_point]] as const).map(([k, v]) => (
+        {([['Area type', route.area_type], ['Estimate', estLabel(route.est_minutes)], ['Focus', route.focus]] as const).map(([k, v]) => (
           <div key={k} className="bg-sf border border-line rounded-[14px] px-3 py-2.5">
             <small className="block text-mut text-[13px]">{k}</small>
-            <b className={`text-sm ${k === 'Area type' ? 'capitalize' : ''}`}>{v || 'Not set'}</b>
+            <b className="text-sm whitespace-pre-line">{v || 'Not set'}</b>
           </div>
         ))}
       </div>
-      {hotspots.length > 0 && (
-        <div className="chips flex flex-wrap gap-2 mt-3">
-          {hotspots.map((h) => <span key={h} className="chip pr-3">{h}</span>)}
-        </div>
+      {corners.length > 0 && (
+        <ol className="mt-3 mb-0 pl-6 grid gap-1">
+          {corners.map((c, i) => <li key={i}>{c.label}{gpsText(c) ? '' : ' (no GPS)'}</li>)}
+        </ol>
       )}
     </section>
   );

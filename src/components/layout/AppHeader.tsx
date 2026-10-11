@@ -43,7 +43,7 @@ const AppHeader: React.FC = () => {
       {sessionId && (
         <button
           onClick={() => { if (!inFlow) navigate(`/patrol/${sessionId}`); }}
-          aria-label={`Patrolling ${routeCode ?? routeName ?? 'route'}, ${formatClock(elapsedSeconds)} elapsed${inFlow ? '' : '. Open patrol'}`}
+          aria-label={`Patrolling ${routeCode ?? routeName ?? 'zone'}, ${formatClock(elapsedSeconds)} elapsed${inFlow ? '' : '. Open patrol'}`}
           className="mt-2.5 w-full flex items-center gap-2.5 rounded-[14px] bg-pri text-prit px-4 min-h-[50px] font-bold border-0 cursor-pointer"
         >
           <span className="w-2.5 h-2.5 rounded-full bg-current flex-none animate-[patrol-pulse_1.6s_infinite]" aria-hidden />

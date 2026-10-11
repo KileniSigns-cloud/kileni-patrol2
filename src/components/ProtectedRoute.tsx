@@ -33,8 +33,8 @@ const ProtectedRoute: React.FC<{ adminOnly?: boolean; children: React.ReactNode 
             icon={ShieldAlert}
             tone="alert"
             title="Admins only"
-            body="Route management is limited to admin accounts. Ask an admin if a route needs changing."
-            action={{ label: 'Back to routes', onClick: () => navigate('/routes', { replace: true }) }}
+            body="Zone management is limited to admin accounts. Ask an admin if a zone needs changing."
+            action={{ label: 'Back to zones', onClick: () => navigate('/routes', { replace: true }) }}
           />
         </div>
       </Screen>

@@ -1,0 +1,2 @@
+zone_code,zone_name,area_type,corner1,corner1_gps,corner2,corner2_gps,corner3,corner3_gps,corner4,corner4_gps,corner5,corner5_gps,corner6,corner6_gps,corner7,corner7_gps,corner8,corner8_gps,anchors,focus,est_minutes,status
+CON-01,"Concord, Dufferin to Keele",Mixed,"Dufferin & Steeles, Concord ON",,"Keele & Steeles, Concord ON",,"Keele & Hwy 7, Concord ON",,"Dufferin & Centre Street, Concord ON",,,,,,,,,,,,,

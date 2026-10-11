@@ -30,10 +30,10 @@ const PatrolTabPage: React.FC = () => {
       ) : lookup.status === 'found' ? (
         <div className="card">
           <div className="flex items-center justify-between gap-2">
-            <span className="badge">{lookup.session.patrol_routes?.code ?? 'Route'}</span>
+            <span className="badge">{lookup.session.patrol_routes?.code ?? 'Zone'}</span>
             <span className="row-meta">Not finished</span>
           </div>
-          <div className="row-name mt-1.5">{lookup.session.patrol_routes?.name ?? 'Unknown route'}</div>
+          <div className="row-name mt-1.5">{lookup.session.patrol_routes?.name ?? 'Unknown zone'}</div>
           <div className="row-meta">
             Started {fmtTime(lookup.session.started_at)},{' '}
             {formatHMM((Date.now() - Date.parse(lookup.session.started_at)) / 60000)} h ago
@@ -50,8 +50,8 @@ const PatrolTabPage: React.FC = () => {
         <EmptyState
           icon={Footprints}
           title="No patrol running"
-          body="Start one from Routes. The timer and every sign you log will show up here."
-          action={{ label: 'Go to routes', onClick: () => navigate('/routes') }}
+          body="Start one from Zones. The timer and every sign you log will show up here."
+          action={{ label: 'Go to zones', onClick: () => navigate('/routes') }}
         />
       )}
 

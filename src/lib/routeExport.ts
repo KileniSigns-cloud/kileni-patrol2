@@ -218,8 +218,8 @@ export function toCsv(rows: readonly ExportRow[]): string {
   return `﻿${lines.join('\r\n')}\r\n`;
 }
 
-/** route-AUR-01-2026-09-28.csv (Toronto date; anything but letters, digits, - and _ becomes -). */
+/** zone-CON-01-2026-09-28.csv (Toronto date; anything but letters, digits, - and _ becomes -). */
 export function routeExportFileName(code: string | null, nowIso: string): string {
-  const safe = (code ?? '').trim().replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'route';
-  return `route-${safe}-${localDate(nowIso)}.csv`;
+  const safe = (code ?? '').trim().replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'zone';
+  return `zone-${safe}-${localDate(nowIso)}.csv`;
 }

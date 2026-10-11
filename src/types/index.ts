@@ -11,15 +11,20 @@ export interface PatrolRoute {
   organisation_id: string;
   name: string;
   code: string;
-  description: string | null;
   area_type: string | null;
   focus: string | null;
-  start_point: string | null;
-  hotspots: string[] | null;
-  /** Turn-by-turn, [{id, label}] (PATROL v1 and the CSV import). Read it through routeInfo.stepLabels. */
+  /** Zone corners in perimeter order, [{label, lat?, lng?}] (migration 014). Read it through zoneInfo.cornerList. */
+  corners: unknown;
+  /** [{name, address?}] (migration 014). Read it through zoneInfo.anchorList. */
+  anchors: unknown;
+  est_minutes: number | null;
+  /** Old route columns: still in the table, no longer shown or written. */
+  description?: string | null;
+  start_point?: string | null;
+  hotspots?: unknown;
   steps?: unknown;
   created_at: string;
-  /** Set when an admin archives the route; archived routes are hidden from patrollers. */
+  /** Set when an admin retires the zone; retired zones are hidden from patrollers. */
   archived_at: string | null;
 }
 export interface PatrolSession {
