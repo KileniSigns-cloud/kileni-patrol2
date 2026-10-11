@@ -6,10 +6,14 @@ import type { ZoneRow } from '../lib/zoneForm';
 import type { RouteDeleteCheck } from '../lib/routeDelete';
 import type { ImportPlan, ImportResponse, ImportRow } from '../lib/zoneImport';
 import type { ZoneInfoData } from '../lib/zoneInfo';
+import { loadRecoveryFlag, saveRecoveryFlag } from '../lib/passwordRecovery';
 import type { PatrolRoute, User } from '../types';
 
 interface PatrolStore {
   currentUser: User | null;
+  /** True after a password-reset link signs the user in, until the new password is saved. Kept in sessionStorage, not localStorage. */
+  passwordRecovery: boolean;
+  setPasswordRecovery: (on: boolean) => void;
   routes: PatrolRoute[];
   routesLoading: boolean;
   routesError: string | null;
@@ -44,6 +48,7 @@ export const usePatrolStore = create<PatrolStore>()(
   persist(
     (set, get) => ({
       currentUser: null,
+      passwordRecovery: loadRecoveryFlag(),
       routes: [],
       routesLoading: false,
       routesError: null,
@@ -52,6 +57,11 @@ export const usePatrolStore = create<PatrolStore>()(
       pendingCount: 0,
 
       setUser: (user) => set({ currentUser: user }),
+
+      setPasswordRecovery: (on) => {
+        saveRecoveryFlag(on);
+        set({ passwordRecovery: on });
+      },
 
       loadRoutes: async () => {
         set({ routesLoading: true, routesError: null });
@@ -82,7 +92,8 @@ export const usePatrolStore = create<PatrolStore>()(
 
       logout: async () => {
         await supabase.auth.signOut();
-        set({ currentUser: null, routes: [], activeSessionId: null, activeRouteId: null });
+        saveRecoveryFlag(false);
+        set({ currentUser: null, passwordRecovery: false, routes: [], activeSessionId: null, activeRouteId: null });
       },
 
       setActiveSession: (sessionId, routeId) =>
