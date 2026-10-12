@@ -31,3 +31,6 @@ reports/
 
 # Backfill backups (contain customer photos)
 backups/
+
+# Dependency lockfile is not tracked in this repo
+package-lock.json
