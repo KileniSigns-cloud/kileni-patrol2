@@ -7,6 +7,8 @@ import { getOrgId } from '../lib/routesApi';
 import { lastPatrolLabel } from '../lib/patrolHistory';
 import { cornersBadge } from '../lib/zoneInfo';
 import { errorMessage } from '../lib/errors';
+import { loadZoneCache, saveZoneCache, savedAtLabel } from '../lib/zoneCache';
+import { usePatrolStore } from '../store/patrol.store';
 import type { PatrolRoute } from '../types';
 import Screen from '../components/layout/Screen';
 import EmptyState, { LoadError } from '../components/ui/EmptyState';
@@ -20,6 +22,9 @@ const RoutesPage: React.FC = () => {
   // route id -> last session start. Absent until loaded; if it fails, cards just omit it.
   const [lastPatrol, setLastPatrol] = useState<Map<string, string | null> | null>(null);
   const [lastPatrolError, setLastPatrolError] = useState<string | null>(null);
+  const orgId = usePatrolStore((s) => s.currentUser?.organisation_id) ?? null;
+  // Set when the list came from the copy saved on this phone instead of the server.
+  const [savedAt, setSavedAt] = useState<string | null>(null);
 
   const fetchRoutes = async () => {
     setLoading(true);
@@ -32,9 +37,19 @@ const RoutesPage: React.FC = () => {
         .is('archived_at', null)
         .order('name');
       if (error) throw error;
-      setRoutes((data || []) as PatrolRoute[]);
+      const list = (data || []) as PatrolRoute[];
+      setRoutes(list);
+      setSavedAt(null);
+      if (orgId) saveZoneCache(localStorage, orgId, list, new Date().toISOString());
     } catch (err) {
-      setError(errorMessage(err, 'Failed to load zones'));
+      // No signal, or the server is down: use the zones saved on this phone, and say so.
+      const saved = orgId ? loadZoneCache(localStorage, orgId) : null;
+      if (saved && saved.routes.length > 0) {
+        setRoutes(saved.routes);
+        setSavedAt(saved.savedAt);
+      } else {
+        setError(errorMessage(err, 'Failed to load zones'));
+      }
     } finally {
       setLoading(false);
     }
@@ -80,6 +95,15 @@ const RoutesPage: React.FC = () => {
         />
       </div>
 
+      {!loading && savedAt && (
+        <div className="grid gap-2 mb-4">
+          <p className="field-hint mt-0" role="status">
+            No connection. Showing the zones saved on this phone ({savedAtLabel(savedAt)}). Last patrol dates are unavailable.
+          </p>
+          <button className="btn" onClick={fetchRoutes}>Try again</button>
+        </div>
+      )}
+
       {loading ? (
         <div className="grid gap-2.5" aria-busy="true">
           {[0, 1, 2].map((i) => <div key={i} className="skeleton h-[72px]" />)}
@@ -88,7 +112,7 @@ const RoutesPage: React.FC = () => {
         <LoadError message={error} onRetry={fetchRoutes} />
       ) : visible.length > 0 ? (
         <div className="grid gap-2.5">
-          {lastPatrolError && <p className="field-hint mt-0" role="status">Last patrol dates unavailable: {lastPatrolError}</p>}
+          {!savedAt && lastPatrolError && <p className="field-hint mt-0" role="status">Last patrol dates unavailable: {lastPatrolError}</p>}
           {visible.map((r) => (
             <button key={r.id} className="rowcard" onClick={() => navigate(`/route/${r.id}`)}>
               <span className="badge">{r.code}</span>

@@ -4,6 +4,7 @@ import { ArrowRight, ChevronLeft, Play } from 'lucide-react';
 import { usePatrolStore } from '../store/patrol.store';
 import { usePatrolSession } from '../context/PatrolSessionContext';
 import { supabase } from '../lib/supabase';
+import { findCachedZone } from '../lib/zoneCache';
 import type { PatrolRoute } from '../types';
 import Screen from '../components/layout/Screen';
 import FlowFooter from '../components/flow/FlowFooter';
@@ -14,6 +15,7 @@ const RoutePreviewPage: React.FC = () => {
   const { routeId } = useParams<{ routeId: string }>();
   const navigate = useNavigate();
   const { currentUser, setActiveSession } = usePatrolStore();
+  const orgId = currentUser?.organisation_id ?? null;
   const { startSession, sessionId: liveSessionId, routeId: liveRouteId, routeCode: liveRouteCode } = usePatrolSession();
 
   const [route, setRoute] = useState<PatrolRoute | null>(null);
@@ -33,14 +35,19 @@ const RoutePreviewPage: React.FC = () => {
       .eq('id', routeId)
       .single()
       .then(({ data, error: err }) => {
-        if (err || !data) {
-          setError('Zone not found.');
-        } else {
+        if (data && !err) {
           setRoute(data as PatrolRoute);
+        } else {
+          // PGRST116: the zone no longer exists. Any other failure is a connection problem,
+          // so use the copy saved when the Zones list last loaded.
+          const gone = !err || err.code === 'PGRST116';
+          const saved = !gone && orgId ? findCachedZone(localStorage, orgId, routeId) : null;
+          if (saved) setRoute(saved);
+          else setError(gone ? 'Zone not found.' : 'No connection, and this zone is not saved on this phone yet. Open the Zones list once with a connection.');
         }
         setLoading(false);
       });
-  }, [routeId, reload]);
+  }, [routeId, reload, orgId]);
 
   const handleStartPatrol = async () => {
     if (!currentUser || !route) return;

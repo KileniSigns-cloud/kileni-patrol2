@@ -7,6 +7,7 @@ import type { RouteDeleteCheck } from '../lib/routeDelete';
 import type { ImportPlan, ImportResponse, ImportRow } from '../lib/zoneImport';
 import type { ZoneInfoData } from '../lib/zoneInfo';
 import { loadRecoveryFlag, saveRecoveryFlag } from '../lib/passwordRecovery';
+import { findCachedZone, zoneInfoOf } from '../lib/zoneCache';
 import type { PatrolRoute, User } from '../types';
 
 interface PatrolStore {
@@ -110,7 +111,17 @@ export const usePatrolStore = create<PatrolStore>()(
       checkRouteDelete: (routeId) => routesApi.checkRouteDelete(routeId),
       getRouteExport: (routeId) => routesApi.fetchRouteExport(routeId),
       getZone: (routeId) => routesApi.fetchRoute(routeId),
-      getZoneInfo: (routeId) => routesApi.fetchZoneInfo(routeId),
+      getZoneInfo: async (routeId) => {
+        try {
+          return await routesApi.fetchZoneInfo(routeId);
+        } catch (err) {
+          // No signal mid-patrol: the Zone info sheet reads the copy saved with the Zones list.
+          const orgId = get().currentUser?.organisation_id;
+          const saved = orgId ? findCachedZone(localStorage, orgId, routeId) : null;
+          if (saved) return zoneInfoOf(saved);
+          throw err;
+        }
+      },
       previewZoneImport: (rows) => routesApi.previewZoneImport(rows),
 
       // Mutations refresh the patroller-facing route list so it never shows stale routes.
