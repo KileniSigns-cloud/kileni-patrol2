@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { CircleUserRound, Moon, ScanEye, Sun } from 'lucide-react';
+import { CircleUserRound, Moon, ScanEye, Sun, WifiOff } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import { usePatrolSession } from '../../context/PatrolSessionContext';
 import { formatClock } from '../../lib/patrolHistory';
 
@@ -16,6 +17,7 @@ const AppHeader: React.FC = () => {
   const { pathname } = useLocation();
   const { isDark, toggle } = useTheme();
   const { sessionId, routeCode, routeName, elapsedSeconds } = usePatrolSession();
+  const online = useOnlineStatus();
   const inFlow = FLOW_PREFIXES.some((p) => pathname.startsWith(p));
 
   return (
@@ -31,6 +33,14 @@ const AppHeader: React.FC = () => {
           Patrol
         </div>
         <div className="flex items-center gap-2">
+          {!online && (
+            <span
+              role="status"
+              className="flex items-center gap-1.5 rounded-xl border border-line bg-accs text-acc px-3 min-h-12 font-bold text-[14px] [&_svg]:w-4 [&_svg]:h-4"
+            >
+              <WifiOff aria-hidden /> Offline
+            </span>
+          )}
           <button onClick={toggle} className={iconBtn} aria-label={`Switch to ${isDark ? 'day' : 'night'} mode`}>
             {isDark ? <Sun aria-hidden /> : <Moon aria-hidden />}
           </button>
