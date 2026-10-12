@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, Map as MapIcon, Search, SearchX, Zap } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -25,6 +25,11 @@ const RoutesPage: React.FC = () => {
   const orgId = usePatrolStore((s) => s.currentUser?.organisation_id) ?? null;
   // Set when the list came from the copy saved on this phone instead of the server.
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  // The organisation id arrives a moment after sign-in, so read it when needed, not when the page opened.
+  const orgIdRef = useRef(orgId);
+  orgIdRef.current = orgId;
+  // The newest list loaded from the server, kept until it has been saved for offline use.
+  const unsaved = useRef<PatrolRoute[] | null>(null);
 
   const fetchRoutes = async () => {
     setLoading(true);
@@ -40,10 +45,12 @@ const RoutesPage: React.FC = () => {
       const list = (data || []) as PatrolRoute[];
       setRoutes(list);
       setSavedAt(null);
-      if (orgId) saveZoneCache(localStorage, orgId, list, new Date().toISOString());
+      unsaved.current = list;
+      if (orgIdRef.current && saveZoneCache(localStorage, orgIdRef.current, list, new Date().toISOString())) unsaved.current = null;
     } catch (err) {
       // No signal, or the server is down: use the zones saved on this phone, and say so.
-      const saved = orgId ? loadZoneCache(localStorage, orgId) : null;
+      const org = orgIdRef.current;
+      const saved = org ? loadZoneCache(localStorage, org) : null;
       if (saved && saved.routes.length > 0) {
         setRoutes(saved.routes);
         setSavedAt(saved.savedAt);
@@ -56,6 +63,13 @@ const RoutesPage: React.FC = () => {
   };
 
   useEffect(() => { fetchRoutes(); }, []);
+
+  // The list loaded before the organisation id was known: save it as soon as the id arrives.
+  useEffect(() => {
+    if (orgId && unsaved.current && saveZoneCache(localStorage, orgId, unsaved.current, new Date().toISOString())) {
+      unsaved.current = null;
+    }
+  }, [orgId]);
 
   useEffect(() => {
     let live = true;
