@@ -32,6 +32,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { Toaster } from './components/ui/Toast';
 import { isAdmin } from './lib/roles';
 import { FORGOT_PASSWORD_PATH, RESET_PASSWORD_PATH, nextRecoveryFlag, recoveryRedirect } from './lib/passwordRecovery';
+import { sessionOrgId } from './lib/session';
 
 /** The old /admin page is gone: admins land on route management, everyone else on History. */
 const AdminRedirect: React.FC<{ currentUser: User }> = ({ currentUser }) => {
@@ -100,7 +101,10 @@ const App: React.FC = () => {
         id: authUser.id,
         email: authUser.email ?? '',
         name: authUser.user_metadata?.name,
-        organisation_id: authUser.user_metadata?.organisation_id ?? '',
+        // Keep the organisation already known for this user: the users read below fails with
+        // no signal, and a blank id would lose the zones saved for offline use, which are
+        // keyed by it.
+        organisation_id: sessionOrgId(authUser.user_metadata?.organisation_id, prev, authUser.id),
         role: prev?.id === authUser.id ? prev.role : undefined,
       });
       supabase
